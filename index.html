@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bibliotech Premium | Gestión Bibliotecaria de Élite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --caoba: #3E2723;
+            --caoba-oscuro: #2A1815;
+            --azul-petroleo: #1A3C40;
+            --dorado: #D4AF37;
+            --dorado-claro: #E5C158;
+            --dorado-oscuro: #B8962F;
+            --pergamino: #FDF5E6;
+            --pergamino-oscuro: #F5ECD8;
+            --crema: #FFF8E7;
+            --negro: #0D0D0D;
+            --blanco: #FAFAFA;
+            --sombra-textura: rgba(62, 39, 35, 0.3);
+            --oro-gradiente: linear-gradient(135deg, #D4AF37 0%, #E5C158 50%, #D4AF37 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            background: var(--caoba);
+            color: var(--pergamino);
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+
+        ::selection {
+            background: var(--dorado);
+            color: var(--caoba);
+        }
+
+        .premium-text {
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+
+        /* ==================== HERO SECTION ==================== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(180deg, 
+                    rgba(13, 13, 13, 0.4) 0%, 
+                    rgba(62, 39, 35, 0.6) 50%,
+                    rgba(62, 39, 35, 0.95) 100%),
+                linear-gradient(90deg, 
+                    rgba(26, 60, 64, 0.5) 0%, 
+                    transparent 50%,
+                    rgba(62, 39, 35, 0.8) 100%),
+                url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1920&q=80') center/cover no-repeat;
+            filter: saturate(0.8) brightness(0.7);
+            transform: scale(1.1);
+            animation: heroZoom 25s ease-in-out infinite alternate;
+        }
+
+        @keyframes heroZoom {
+            0% { transform: scale(1.1); }
+            100% { transform: scale(1.15); }
+        }
+
+        .hero-particles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--dorado);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFloat 8s infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { opacity: 0; transform: translateY(-20vh) scale(1); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+            padding: 2rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1.5rem;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50px;
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInDown 1s ease-out 0.3s forwards;
+        }
+
+        .hero-badge svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--dorado);
+        }
+
+        .hero-badge span {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--dorado);
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 500;
+            line-height: 1.1;
+            color: var(--dorado);
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+        }
+
+        .hero-title em {
+            font-style: italic;
+            color: var(--pergamino);
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.35rem);
+            font-weight: 300;
+            color: var(--pergamino-oscuro);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.7s forwards;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.9s forwards;
+        }
+
+        .btn-primary {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2.5rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--caoba);
+            background: var(--oro-gradiente);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-primary:hover::before {
+            transform: translateX(100%);
+        }
+
+.btn-secondary {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--pergamino);
+            background: transparent;
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary::after {
+            content: '';
+            position: absolute;
+            bottom: 0.75rem;
+            left: 2rem;
+            width: 0;
+            height: 1px;
+            background: var(--dorado);
+            transition: width 0.3s ease;
+        }
+
+        .btn-secondary:hover::after {
+            width: calc(100% - 4rem);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--dorado);
+            color: var(--dorado);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .btn-secondary::after {
+            content: '';
+            width: 0;
+            height: 1px;
+            background: var(--dorado);
+            transition: width 0.3s ease;
+        }
+
+        .btn-secondary:hover::after {
+            width: calc(100% - 4rem);
+        }
+
+        .hero-scroll {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.2s forwards;
+        }
+
+        .hero-scroll span {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--dorado);
+            opacity: 0.6;
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 40px;
+            background: linear-gradient(to bottom, var(--dorado), transparent);
+            animation: scrollBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes scrollBounce {
+            0%, 100% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(10px); opacity: 0.3; }
+        }
+
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== SECTION COMMON ==================== */
+        section {
+            padding: 6rem 2rem;
+        }
+
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-divider {
+            width: 80px;
+            height: 2px;
+            background: var(--oro-gradiente);
+            margin: 1.5rem auto;
+        }
+
+        /* ==================== PROBLEM SECTION ==================== */
+        .problem {
+            background: var(--pergamino);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .problem::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ctext x='50' y='50' font-family='Georgia' font-size='24' fill='%23D4AF37' fill-opacity='0.03'%3EA%3C/text%3E%3C/text%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .problem-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .problem-text {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 400;
+            font-style: italic;
+            color: var(--caoba);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+            line-height: 1.5;
+        }
+
+        .problems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .problem-card {
+            background: var(--crema);
+            padding: 2rem;
+            border: 1px solid rgba(62, 39, 35, 0.1);
+            text-align: center;
+            transition: all 0.4s ease;
+            opacity: 0;
+            animation: scaleIn 0.6s ease-out forwards;
+        }
+
+        .problem-card:nth-child(1) { animation-delay: 0.1s; }
+        .problem-card:nth-child(2) { animation-delay: 0.2s; }
+        .problem-card:nth-child(3) { animation-delay: 0.3s; }
+        .problem-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .problem-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(62, 39, 35, 0.15);
+        }
+
+        .problem-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--dorado);
+            border-radius: 50%;
+        }
+
+        .problem-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--dorado);
+            fill: none;
+            stroke-width: 1.5;
+        }
+
+        .problem-card h3 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--caoba);
+            margin-bottom: 0.5rem;
+        }
+
+        .problem-card p {
+            font-size: 0.9rem;
+            color: var(--caoba-oscuro);
+            opacity: 0.7;
+        }
+
+        /* ==================== BENEFITS SECTION ==================== */
+        .benefits {
+            background: var(--caoba-oscuro);
+            position: relative;
+        }
+
+        .benefits-bg {
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(135deg, rgba(26, 60, 64, 0.3) 0%, transparent 50%),
+                url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1920&q=80') center/cover no-repeat;
+            filter: brightness(0.3) saturate(0.5);
+        }
+
+        .benefits-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .benefits-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 500;
+            color: var(--dorado);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .benefit-card {
+            padding: 2.5rem;
+            background: rgba(62, 39, 35, 0.6);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.4s ease;
+        }
+
+        .benefit-card:hover {
+            background: rgba(62, 39, 35, 0.8);
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+
+        .benefit-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 1.5rem;
+        }
+
+        .benefit-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--dorado);
+            fill: none;
+            stroke-width: 1.5;
+        }
+
+        .benefit-card h3 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dorado);
+            margin-bottom: 1rem;
+        }
+
+        .benefit-card p {
+            font-size: 1rem;
+            color: var(--pergamino);
+            line-height: 1.8;
+            opacity: 0.85;
+        }
+
+        /* ==================== FEATURES SECTION ==================== */
+        .features {
+            background: var(--caoba);
+            position: relative;
+        }
+
+        .features::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(26, 60, 64, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 50%);
+        }
+
+        .features-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .features-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--pergamino);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-item {
+            position: relative;
+            padding: 2rem;
+            background: rgba(42, 24, 21, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .feature-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 0;
+            background: var(--dorado);
+            transition: height 0.4s ease;
+        }
+
+        .feature-item:hover {
+            border-color: rgba(212, 175, 55, 0.4);
+            transform: translateX(5px);
+        }
+
+        .feature-item:hover::before {
+            height: 100%;
+        }
+
+        .feature-item h4 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.15rem;
+            font-weight: 500;
+            color: var(--dorado);
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-item p {
+            font-size: 0.95rem;
+            color: var(--pergamino);
+            opacity: 0.75;
+            line-height: 1.6;
+        }
+
+        /* ==================== TESTIMONIALS SECTION ==================== */
+        .testimonials {
+            background: var(--azul-petroleo);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .testimonials-bg {
+            position: absolute;
+            inset: 0;
+            background: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&q=80') center/cover no-repeat;
+            filter: brightness(0.4) saturate(0.6);
+        }
+
+        .testimonials-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonials-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--dorado);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            padding: 2.5rem;
+            background: rgba(253, 245, 230, 0.95);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            position: relative;
+        }
+
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 1rem;
+            left: 1.5rem;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 5rem;
+            color: var(--dorado);
+            opacity: 0.2;
+            line-height: 1;
+        }
+
+        .testimonial-quote {
+            font-size: 1.05rem;
+            font-style: italic;
+            color: var(--caoba);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-author {
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            padding-top: 1rem;
+        }
+
+        .testimonial-author strong {
+            display: block;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--caoba);
+        }
+
+        .testimonial-author span {
+            font-size: 0.85rem;
+            color: var(--caoba-oscuro);
+            opacity: 0.7;
+        }
+
+        /* ==================== PRICING SECTION ==================== */
+        .pricing {
+            background: var(--pergamino);
+            position: relative;
+        }
+
+        .pricing::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(62, 39, 35, 0.02) 50px,
+                    rgba(62, 39, 35, 0.02) 51px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(62, 39, 35, 0.02) 50px,
+                    rgba(62, 39, 35, 0.02) 51px
+                );
+        }
+
+        .pricing-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .pricing-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--caoba);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-subtitle {
+            text-align: center;
+            color: var(--caoba-oscuro);
+            opacity: 0.7;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            padding: 2.5rem 2rem;
+            background: var(--blanco);
+            border: 2px solid rgba(62, 39, 35, 0.1);
+            text-align: center;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--dorado);
+            transform: scale(1.02);
+        }
+
+        .pricing-card.featured::before {
+            content: 'Más popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.25rem 1rem;
+            background: var(--dorado);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--caoba);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(62, 39, 35, 0.15);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.02) translateY(-5px);
+        }
+
+        .pricing-tier {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--caoba);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-desc {
+            font-size: 0.9rem;
+            color: var(--caoba-oscuro);
+            opacity: 0.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-price {
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-price .amount {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 3rem;
+            font-weight: 600;
+            color: var(--caoba);
+        }
+
+        .pricing-price .period {
+            font-size: 1rem;
+            color: var(--caoba-oscuro);
+            opacity: 0.6;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .pricing-features li {
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+            color: var(--caoba-oscuro);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pricing-features li::before {
+            content: '◆';
+            font-size: 0.5rem;
+            color: var(--dorado);
+        }
+
+        .pricing-btn {
+            width: 100%;
+            padding: 1rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: transparent;
+            border: 2px solid var(--caoba);
+            color: var(--caoba);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-btn:hover {
+            background: var(--caoba);
+            color: var(--pergamino);
+        }
+
+        .pricing-card.featured .pricing-btn {
+            background: var(--caoba);
+            border-color: var(--caoba);
+            color: var(--pergamino);
+        }
+
+        .pricing-card.featured .pricing-btn:hover {
+            background: var(--dorado);
+            border-color: var(--dorado);
+            color: var(--caoba);
+        }
+
+        .pricing-guarantee {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1.5rem;
+            border: 1px dashed rgba(62, 39, 35, 0.3);
+        }
+
+        .pricing-guarantee p {
+            font-style: italic;
+            color: var(--caoba-oscuro);
+            opacity: 0.8;
+        }
+
+        /* ==================== FAQ SECTION ==================== */
+        .faq {
+            background: var(--caoba);
+        }
+
+        .faq-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 500;
+            color: var(--pergamino);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .faq-grid {
+            max-width: 800px;
+            margin: 0 auto;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .faq-item {
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 1.5rem 2rem;
+            background: transparent;
+            border: none;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            font-weight: 500;
+            color: var(--pergamino);
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            color: var(--dorado);
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5rem;
+            color: var(--dorado);
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.open .faq-question::after {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .faq-answer-content {
+            padding: 0 2rem 1.5rem;
+            font-size: 1rem;
+            color: var(--pergamino);
+            opacity: 0.75;
+            line-height: 1.7;
+        }
+
+        /* ==================== CTA SECTION ==================== */
+        .cta {
+            position: relative;
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .cta-bg {
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(180deg, rgba(62, 39, 35, 0.7) 0%, rgba(13, 13, 13, 0.9) 100%),
+                url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&q=80') center/cover no-repeat;
+            filter: brightness(0.5) saturate(0.8);
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .cta-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 500;
+            color: var(--pergamino);
+            margin-bottom: 1.5rem;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem 3rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--caoba);
+            background: var(--oro-gradiente);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(212, 175, 55, 0.5);
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
+            background: var(--caoba-oscuro);
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand {
+            max-width: 300px;
+        }
+
+        .footer-logo {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dorado);
+            margin-bottom: 1rem;
+        }
+
+        .footer-desc {
+            font-size: 0.9rem;
+            color: var(--pergamino);
+            opacity: 0.6;
+            line-height: 1.7;
+        }
+
+        .footer-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--dorado);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            font-size: 0.9rem;
+            color: var(--pergamino);
+            opacity: 0.6;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+            color: var(--dorado);
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            border-color: var(--dorado);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .footer-social svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--dorado);
+        }
+
+        .footer-bottom {
+            padding-top: 2rem;
+            border-top: 1px solid rgba(212, 175, 55, 0.1);
+            text-align: center;
+        }
+
+        .footer-bottom p {
+            font-size: 0.8rem;
+            color: var(--pergamino);
+            opacity: 0.4;
+            letter-spacing: 1px;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            section {
+                padding: 4rem 1.5rem;
+            }
+
+            .hero-ctas {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+
+            .problems-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.featured {
+                transform: none;
+            }
+        }
+
+        /* ==================== SCROLL OBSERVER ==================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal-left.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal-right.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-particles" id="particles"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <span>Bibliotech Premium</span>
+            </div>
+            <h1 class="hero-title">Donde el conocimiento se gestiona con <em>elegancia</em></h1>
+            <p class="hero-subtitle">Software de gestión bibliotecaria premium: automatización, catálogo inteligente y una experiencia lectora sublime.</p>
+            <div class="hero-ctas">
+                <button class="btn-primary">
+                    Solicitar acceso exclusivo
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <button class="btn-secondary">Explorar el tour virtual</button>
+            </div>
+        </div>
+        <div class="hero-scroll">
+            <span>Descubrir más</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- PROBLEM SECTION -->
+    <section class="problem">
+        <div class="problem-content section-container">
+            <div class="section-header">
+                <h2 class="premium-text reveal">El arte de la gestión silenciosa</h2>
+                <div class="section-divider reveal"></div>
+            </div>
+            <p class="problem-text reveal">Administrar una biblioteca exquisita exige precisión, no papeleo. Deje atrás la era de fichas manuscritas, multas olvidadas y catálogos escondidos.</p>
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <h3>El tiempo se escapa</h3>
+                    <p>Registros manuales que consumen horas</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </div>
+                    <h3>Tesoro invisible</h3>
+                    <p>Obras valiosas sin descubrir</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <h3>Morosidad empañada</h3>
+                    <p>Sanciones sin cortesía</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <h3>Informes penosos</h3>
+                    <p>Reportes laborales interminables</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFITS SECTION -->
+    <section class="benefits">
+        <div class="benefits-bg"></div>
+        <div class="benefits-content section-container">
+            <div class="section-header">
+                <h2 class="premium-text reveal">La solución que eleva su legado</h2>
+                <div class="section-divider reveal"></div>
+            </div>
+            <div class="benefits-grid">
+                <div class="benefit-card reveal">
+                    <div class="benefit-icon">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                    <h3>Distinción digital</h3>
+                    <p>Catálogo en línea tan bello como su colección más preciada. Sus lectores explorarán desde cualquier lugar, como si passearan entre los anaqueles.</p>
+                </div>
+                <div class="benefit-card reveal">
+                    <div class="benefit-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h3>Disciplina automatizada</h3>
+                    <p>Préstamos y devoluciones coreografiados. El sistema recuerda, avisa y sanciona con cortesía, manteniendo el orden sin esfuerzo.</p>
+                </div>
+                <div class="benefit-card reveal">
+                    <div class="benefit-icon">
+                        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                    <h3>Sabiduría revelada</h3>
+                    <p>Dashboard de inteligencia: sepa qué obras son joyas ocultas, qué lectores son sus mecenas y cómo crece su comunidad.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section class="features">
+        <div class="features-content section-container">
+            <div class="section-header">
+                <h2 class="premium-text reveal">Caja de herramientas del bibliotecario moderno</h2>
+                <div class="section-divider reveal"></div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-item reveal">
+                    <h4>Catalogación automática por ISBN</h4>
+                    <p>Escanee y el sistema clasifica automáticamente con metadatos enriquecidos.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Carnet digital con diseño heráldico</h4>
+                    <p>Identidad visual exclusiva que refuerza la marca de su institución.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Alertas de devolución</h4>
+                    <p>Notificaciones elegantes en papel pergamino digital, nunca intrusivas.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Pasarela de pagos discreta</h4>
+                    <p>Multas y membresías con procesamiento seguro y oculto al usuario.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>App lector inmersiva</h4>
+                    <p>Interfaz de madera y oro para una experiencia de lectura premium.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Reportes exportables</h4>
+                    <p>Documentos con membrete personalizado para informes oficiales.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Respaldo encriptado</h4>
+                    <p>Seguridad cloud con cifrado de grado bancario.</p>
+                </div>
+                <div class="feature-item reveal">
+                    <h4>Accesibilidad total</h4>
+                    <p>Lector de pantalla y alto contraste para inclusión absoluta.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SECTION -->
+    <section class="testimonials">
+        <div class="testimonials-bg"></div>
+        <div class="testimonials-content section-container">
+            <div class="section-header">
+                <h2 class="premium-text reveal">Custodios del saber</h2>
+                <div class="section-divider reveal"></div>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">Desde que implementamos el sistema, nuestros manuscritos del siglo XVII están tan bien gestionados como los e-books. La elegancia del software iguala a nuestra sala de lectura.</p>
+                    <div class="testimonial-author">
+                        <strong>Dra. Camila Reyes</strong>
+                        <span>Directora Biblioteca Patrimonial Áurea</span>
+                    </div>
+                </div>
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">El catálogo público es una obra de arte. Los socios consultan primeras ediciones desde su teléfono y las reservan para el té de las 5. Increíble.</p>
+                    <div class="testimonial-author">
+                        <strong>Sr. Alonso Miró</strong>
+                        <span>Encargado Club de Lectura Ateneo</span>
+                    </div>
+                </div>
+                <div class="testimonial-card reveal">
+                    <p class="testimonial-quote">Ahora genero el informe anual de préstamos para la UNESCO en minutos y con gráficos impecables. Un software a la altura de nuestra misión.</p>
+                    <div class="testimonial-author">
+                        <strong>Ing. Patricia Fonseca</strong>
+                        <span>Red de Bibliotecas del Conocimiento</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING SECTION -->
+    <section class="pricing">
+        <div class="pricing-content section-container">
+            <div class="section-header">
+                <h2 class="premium-text reveal">Afine la gestión de su colección</h2>
+                <div class="section-divider reveal"></div>
+            </div>
+            <p class="pricing-subtitle reveal">Planes diseñados para cada escala de colección</p>
+            <div class="pricing-grid">
+                <div class="pricing-card reveal">
+                    <h3 class="pricing-tier">Esencial</h3>
+                    <p class="pricing-desc">Pequeños tesoros</p>
+                    <div class="pricing-price">
+                        <span class="amount">$45</span>
+                        <span class="period">/mes</span>
+                    </div>
+                    <p class="pricing-desc">Hasta 3.000 obras</p>
+                    <ul class="pricing-features">
+                        <li>Catálogo digital ilimitado</li>
+                        <li>Buscar y reservas en línea</li>
+                        <li>Reportes básicos</li>
+                        <li>Soporte por email</li>
+                    </ul>
+                    <button class="pricing-btn">Comenzar prueba</button>
+                </div>
+                <div class="pricing-card featured reveal">
+                    <h3 class="pricing-tier">Erudito</h3>
+                    <p class="pricing-desc">Colecciones distinguidas</p>
+                    <div class="pricing-price">
+                        <span class="amount">$98</span>
+                        <span class="period">/mes</span>
+                    </div>
+                    <p class="pricing-desc">Hasta 30.000 obras + app</p>
+                    <ul class="pricing-features">
+                        <li>Todo en Esencial</li>
+                        <li>Aplicación lector premium</li>
+                        <li>Reportes avanzados</li>
+                        <li>Soporte prioritario</li>
+                        <li>Personalización completa</li>
+                    </ul>
+                    <button class="pricing-btn">Comenzar prueba</button>
+                </div>
+                <div class="pricing-card reveal">
+                    <h3 class="pricing-tier">Legado</h3>
+                    <p class="pricing-desc">Redes institucionales</p>
+                    <div class="pricing-price">
+                        <span class="amount">Consultar</span>
+                    </div>
+                    <p class="pricing-desc">Volúmenes ilimitados</p>
+                    <ul class="pricing-features">
+                        <li>Todo en Erudito</li>
+                        <li>Sedes múltiples</li>
+                        <li>API completa</li>
+                        <li>Gerente de cuenta dedicado</li>
+                        <li>Migración asistida gratuita</li>
+                    </ul>
+                    <button class="pricing-btn">Contactar ventas</button>
+                </div>
+            </div>
+            <div class="pricing-guarantee reveal">
+                <p>"Si no siente que su biblioteca respira mejor, le devolvemos su inversión en 30 días."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="faq">
+        <div class="section-container">
+            <h2 class="faq-title reveal">Preguntas fréquentes</h2>
+            <div class="faq-grid">
+                <div class="faq-item reveal">
+                    <button class="faq-question">¿Migrará mis datos desde mi viejo Excel?</button>
+                    <div class="faq-answer">
+                        <p class="faq-answer-content">Con la misma fluidez con que se desliza una escalera sobre rieles. Nuestro equipo hace la transferencia sin costo adicional, garantizando integridad de datos.</p>
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-question">¿Es seguro para libros raros y manuscritos?</button>
+                    <div class="faq-answer">
+                        <p class="faq-answer-content">Cada registro permite notas detalladas de conservación y condiciones de manipulación específicas. El sistema honra la fragilidad de cada pieza.</p>
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-question">¿Ofrecen soporte en horarios de biblioteca?</button>
+                    <div class="faq-answer">
+                        <p class="faq-answer-content">Sí, soporte humano de lunes a sábado, como un bibliotecario de guardia. Disponible cuando usted lo necesita.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="cta">
+        <div class="cta-bg"></div>
+        <div class="cta-content">
+            <h2 class="cta-title reveal">Convierta su biblioteca en el capítulo más inteligente de su historia</h2>
+            <button class="cta-btn reveal">Solicitar demostración privada</button>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">Bibliotech Premium</div>
+                <p class="footer-desc">Software de gestión bibliotecaria diseñado para custodios del conocimiento que aprecian la excelencia.</p>
+            </div>
+            <div class="footer-col">
+                <h4 class="footer-title">Navegación</h4>
+                <ul class="footer-links">
+                    <li><a href="#">Características</a></li>
+                    <li><a href="#">Precios</a></li>
+                    <li><a href="#">Testimonios</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4 class="footer-title">Recursos</h4>
+                <ul class="footer-links">
+                    <li><a href="#">Blog del bibliófilo</a></li>
+                    <li><a href="#">Documentación</a></li>
+                    <li><a href="#">API</a></li>
+                    <li><a href="#">Estado del sistema</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4 class="footer-title">Legal</h4>
+                <ul class="footer-links">
+                    <li><a href="#">Acerca de</a></li>
+                    <li><a href="#">Privacidad</a></li>
+                    <li><a href="#">Términos</a></li>
+                </ul>
+                <div class="footer-social">
+                    <a href="#" aria-label="Twitter">
+                        <svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+                    </a>
+                    <a href="#" aria-label="LinkedIn">
+                        <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                    </a>
+                    <a href="#" aria-label="Instagram">
+                        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 Bibliotech Premium. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        // PARTICLES ANIMATION
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particle.style.animationDuration = (6 + Math.random() * 4) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // SCROLL REVEAL ANIMATION
+        const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        reveals.forEach(el => observer.observe(el));
+
+        // FAQ ACCORDION
+        const faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            const answer = item.querySelector('.faq-answer');
+            
+            question.addEventListener('click', () => {
+                const isOpen = item.classList.contains('open');
+                
+                faqItems.forEach(i => {
+                    i.classList.remove('open');
+                    i.querySelector('.faq-answer').style.maxHeight = null;
+                });
+                
+                if (!isOpen) {
+                    item.classList.add('open');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                }
+            });
+        });
+
+        // SMOOTH SCROLL FOR ANCHOR LINKS
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // PARALLAX EFFECT ON HERO
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const heroBg = document.querySelector('.hero-bg');
+            if (heroBg && scrolled < window.innerHeight) {
+                heroBg.style.transform = `scale(1.1) translateY(${scrolled * 0.3}px)`;
+            }
+        });
+    </script>
+</body>
+</html>

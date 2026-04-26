@@ -1,0 +1,227 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Crimson+Pro:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --amber: #D4A574;
+  --amber-light: #E5B885;
+  --amber-dark: #B8956A;
+  --amber-glow: rgba(212, 165, 116, 0.3);
+  --rose: #E57373;
+  --rose-light: #EF9A9A;
+  --rose-dark: #D32F2F;
+  --stone-950: #1A1512;
+  --stone-900: #26201C;
+  --stone-800: #322B24;
+  --stone-700: #443930;
+  --stone-600: #5A4D42;
+  --stone-400: #9C8E7E;
+  --stone-300: #C4B8A8;
+  --stone-100: #FAF3E8;
+  --cream: #FAF3E8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-stone-950 text-stone-100 font-body antialiased;
+  min-height: 100vh;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+::selection {
+  background: rgba(212, 165, 116, 0.25);
+  color: var(--cream);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--stone-950);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--stone-700);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-dark);
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-amber-500 text-stone-950 font-sans font-semibold px-6 py-3 rounded-lg
+           hover:bg-amber-400 active:bg-amber-600
+           transition-all duration-300 ease-out
+           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-stone-950 focus:ring-offset-4
+           shadow-amber-sm hover:shadow-amber-glow;
+  }
+
+  .btn-secondary {
+    @apply border border-amber-500/40 text-amber-500 font-sans font-medium px-6 py-3 rounded-lg
+           hover:bg-amber-500 hover:text-stone-950
+           transition-all duration-300 ease-out
+           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-stone-950;
+  }
+
+  .btn-ghost {
+    @apply text-stone-400 font-sans font-medium px-4 py-2 rounded-lg
+           hover:text-stone-100 hover:bg-white/5
+           transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-rose-500 text-white font-sans font-semibold px-6 py-3 rounded-lg
+           hover:bg-rose-400 active:bg-rose-600
+           transition-all duration-300 ease-out;
+  }
+
+  .input-field {
+    @apply w-full bg-stone-900 border border-stone-700/50 rounded-lg px-4 py-3.5
+           text-stone-100 placeholder:text-stone-500
+           font-sans text-base
+           focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30
+           transition-all duration-300;
+  }
+
+  .input-label {
+    @apply block text-sm font-sans font-medium text-stone-400 mb-2;
+  }
+
+  .card {
+    @apply bg-stone-900/80 border border-stone-800/50 rounded-xl p-6
+           shadow-card backdrop-blur-sm;
+  }
+
+  .card-elevated {
+    @apply bg-stone-900 border border-stone-700/30 rounded-2xl p-8
+           shadow-elevated;
+  }
+
+  .card-liquid {
+    @apply bg-stone-900/60 backdrop-blur-xl border border-stone-700/30 rounded-2xl
+           shadow-liquid;
+  }
+
+  .link {
+    @apply text-amber-500 hover:text-amber-400 transition-colors duration-200;
+  }
+
+  .text-display {
+    @apply font-display font-bold tracking-tight;
+  }
+
+  .text-muted {
+    @apply text-stone-500;
+  }
+
+  .divider {
+    @apply border-t border-stone-800/50;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-sans font-medium;
+  }
+
+  .badge-amber {
+    @apply badge bg-amber-500/10 text-amber-500 border border-amber-500/20;
+  }
+
+  .badge-rose {
+    @apply badge bg-rose-500/10 text-rose-500 border border-rose-500/20;
+  }
+
+  .badge-stone {
+    @apply badge bg-stone-800 text-stone-400 border border-stone-700;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-stone-400 font-sans font-medium
+           hover:text-stone-100 hover:bg-white/5
+           transition-all duration-200;
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-amber-500/10 text-amber-500 border-l-2 border-amber-500;
+  }
+
+  .stat-card {
+    @apply bg-stone-900/80 border border-stone-800/50 rounded-xl p-5 backdrop-blur-sm
+           hover:border-amber-500/30 hover:shadow-amber-sm transition-all duration-300;
+  }
+
+  .table-header {
+    @apply text-xs font-sans font-semibold text-stone-500 uppercase tracking-wider text-left px-5 py-3;
+  }
+
+  .table-cell {
+    @apply px-5 py-4 text-stone-100 font-sans;
+  }
+
+  .table-row {
+    @apply border-b border-stone-800/50 hover:bg-white/[0.02] transition-colors duration-150;
+  }
+
+  .glass-panel {
+    @apply bg-stone-900/40 backdrop-blur-xl border border-stone-700/30 rounded-2xl;
+  }
+}
+
+@layer utilities {
+  .animate-stagger {
+    animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    opacity: 0;
+  }
+
+  .animate-stagger:nth-child(1) { animation-delay: 0ms; }
+  .animate-stagger:nth-child(2) { animation-delay: 80ms; }
+  .animate-stagger:nth-child(3) { animation-delay: 160ms; }
+  .animate-stagger:nth-child(4) { animation-delay: 240ms; }
+  .animate-stagger:nth-child(5) { animation-delay: 320ms; }
+  .animate-stagger:nth-child(6) { animation-delay: 400ms; }
+  .animate-stagger:nth-child(7) { animation-delay: 480ms; }
+  .animate-stagger:nth-child(8) { animation-delay: 560ms; }
+
+  .text-gradient-amber {
+    @apply bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 bg-clip-text text-transparent;
+  }
+
+  .glass {
+    @apply bg-stone-900/50 backdrop-blur-xl border border-stone-700/30;
+  }
+
+  .noise {
+    position: relative;
+  }
+
+  .noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+}

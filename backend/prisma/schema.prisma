@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("MEMBER")
+  isActive     Boolean   @default(true)
+  blockedUntil DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  loans        Loan[]
+  reservations Reservation[]
+  reviews      Review[]
+  fines        Fine[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  bio       String?
+  country   String?
+  createdAt DateTime @default(now())
+
+  books Book[]
+
+  @@index([name])
+}
+
+model Genre {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  parentId String?
+  parent   Genre?  @relation("GenreHierarchy", fields: [parentId], references: [id])
+  children Genre[] @relation("GenreHierarchy")
+
+  books Book[]
+
+  @@index([name])
+}
+
+model Book {
+  id            String   @id @default(cuid())
+  isbn          String   @unique
+  title         String
+  synopsis      String?
+  coverUrl      String?
+  publishedYear Int?
+  publisher     String?
+  language      String   @default("es")
+  pageCount     Int?
+  googleBooksId String?  @unique
+  openLibraryId String?  @unique
+
+  authorId String
+  author   Author  @relation(fields: [authorId], references: [id])
+  genreId  String
+  genre    Genre   @relation(fields: [genreId], references: [id])
+
+  copies  Copy[]
+  reviews Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([title])
+  @@index([isbn])
+  @@index([authorId])
+  @@index([genreId])
+}
+
+model Branch {
+  id       String   @id @default(cuid())
+  name     String
+  address  String
+  phone    String?
+  schedule String   @default("{\"open\": \"08:00\", \"close\": \"20:00\"}")
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  copies Copy[]
+  loans  Loan[]
+
+  @@index([name])
+}
+
+model Copy {
+  id        String  @id @default(cuid())
+  barcode   String  @unique
+  status    String  @default("AVAILABLE")
+  condition String  @default("GOOD")
+
+  zone     String?
+  shelf    String?
+  position Int?
+
+  bookId   String
+  book     Book    @relation(fields: [bookId], references: [id])
+  branchId String
+  branch   Branch  @relation(fields: [branchId], references: [id])
+
+  loans        Loan[]
+  reservations Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barcode])
+  @@index([bookId])
+  @@index([branchId])
+  @@index([status])
+  @@index([bookId, status])
+}
+
+model Loan {
+  id           String    @id @default(cuid())
+  renewalCount Int       @default(0)
+  maxRenewals  Int       @default(2)
+  loanDate     DateTime
+  dueDate      DateTime
+  returnDate   DateTime?
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  copyId   String
+  copy     Copy   @relation(fields: [copyId], references: [id])
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  fines Fine[]
+
+  @@index([userId])
+  @@index([copyId])
+  @@index([dueDate])
+}
+
+model Reservation {
+  id         String   @id @default(cuid())
+  position   Int
+  status     String   @default("WAITING")
+  notifiedAt DateTime?
+  expiresAt  DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  copyId String
+  copy   Copy   @relation(fields: [copyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([copyId])
+  @@index([status])
+}
+
+model Fine {
+  id     String  @id @default(cuid())
+  amount Float
+  reason String
+  status String  @default("PENDING")
+  paidAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  loanId String?
+  loan   Loan?  @relation(fields: [loanId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  rating       Int
+  comment      String?
+  status       String   @default("PENDING")
+  flaggedWords String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  userId     String?
+  metadata   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
