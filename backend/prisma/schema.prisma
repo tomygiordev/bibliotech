@@ -22,6 +22,7 @@ model User {
   reservations Reservation[]
   reviews      Review[]
   fines        Fine[]
+  suggestions  BookSuggestion[]
 
   @@index([email])
   @@index([role])
@@ -127,6 +128,7 @@ model Copy {
 
 model Loan {
   id           String    @id @default(cuid())
+  status       String    @default("ACTIVE")
   renewalCount Int       @default(0)
   maxRenewals  Int       @default(2)
   loanDate     DateTime
@@ -147,6 +149,7 @@ model Loan {
   @@index([userId])
   @@index([copyId])
   @@index([dueDate])
+  @@index([status])
 }
 
 model Reservation {
@@ -160,12 +163,15 @@ model Reservation {
   user   User   @relation(fields: [userId], references: [id])
   copyId String
   copy   Copy   @relation(fields: [copyId], references: [id])
+  bookId String?
 
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([copyId])
   @@index([status])
+  @@index([bookId])
+  @@index([bookId, status])
 }
 
 model Fine {
@@ -174,6 +180,8 @@ model Fine {
   reason String
   status String  @default("PENDING")
   paidAt DateTime?
+  waivedBy String?
+  waivedAt DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -226,4 +234,80 @@ model SystemConfig {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders PurchaseOrder[]
+
+  @@index([name])
+}
+
+model PurchaseOrder {
+  id          String    @id @default(cuid())
+  orderNumber String    @unique
+  status      String    @default("PENDING")
+  vendorId    String
+  vendor      Vendor    @relation(fields: [vendorId], references: [id])
+  notes       String?
+  total       Float     @default(0)
+  orderDate   DateTime?
+  expectedDate DateTime?
+  receivedDate DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items OrderItem[]
+
+  @@index([orderNumber])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model OrderItem {
+  id              String  @id @default(cuid())
+  isbn            String?
+  title           String
+  author          String?
+  publisher       String?
+  publishedYear   Int?
+  quantity        Int     @default(1)
+  price           Float   @default(0)
+  receivedQuantity Int   @default(0)
+  status          String  @default("PENDING")
+  orderId         String
+  order           PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+model BookSuggestion {
+  id           String   @id @default(cuid())
+  isbn         String?
+  title        String
+  author       String?
+  publisher    String?
+  publishedYear Int?
+  reason       String?
+  status       String   @default("PENDING")
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([userId])
 }

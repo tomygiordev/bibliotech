@@ -10,6 +10,7 @@ import { CatalogPage } from '@/features/books/pages/CatalogPage';
 import { BookDetailPage } from '@/features/books/pages/BookDetailPage';
 import { MyLoansPage } from '@/features/loans/pages/MyLoansPage';
 import { MyReservationsPage } from '@/features/reservations/pages/MyReservationsPage';
+import { MyPaymentsPage } from '@/features/payments/pages/MyPaymentsPage';
 import { DashboardPage } from '@/features/admin/pages/DashboardPage';
 import { UsersPage } from '@/features/admin/pages/UsersPage';
 import { ReportsPage } from '@/features/admin/pages/ReportsPage';
@@ -18,6 +19,9 @@ import { AdminBranchesPage } from '@/features/admin/pages/AdminBranchesPage';
 import { AdminCopiesPage } from '@/features/admin/pages/AdminCopiesPage';
 import { AdminLoansPage } from '@/features/admin/pages/AdminLoansPage';
 import { AdminReservationsPage } from '@/features/admin/pages/AdminReservationsPage';
+import { AdminFinesPage } from '@/features/admin/pages/AdminFinesPage';
+import { AdminAcquisitionsPage } from '@/features/acquisitions/pages/AdminAcquisitionsPage';
+import { SuggestBookPage } from '@/features/acquisitions/pages/SuggestBookPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore();
@@ -38,6 +42,8 @@ export default function App() {
           <Route path="/admin/reports" element={<ReportsPage />} />
           <Route path="/admin/loans" element={<AdminLoansPage />} />
           <Route path="/admin/reservations" element={<AdminReservationsPage />} />
+          <Route path="/admin/fines" element={<AdminFinesPage />} />
+          <Route path="/admin/acquisitions" element={<AdminAcquisitionsPage />} />
           <Route path="/admin/books" element={<AdminBooksPage />} />
           <Route path="/admin/copies" element={<AdminCopiesPage />} />
           <Route path="/admin/branches" element={<AdminBranchesPage />} />
@@ -60,6 +66,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyReservationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-account"
+            element={
+              <ProtectedRoute>
+                <MyPaymentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/suggest-book"
+            element={
+              <ProtectedRoute>
+                <SuggestBookPage />
               </ProtectedRoute>
             }
           />

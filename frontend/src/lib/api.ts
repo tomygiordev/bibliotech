@@ -134,9 +134,22 @@ export interface Fine {
   id: string;
   amount: number;
   reason: string;
-  status: 'PENDING' | 'PAID' | string;
+  status: 'PENDING' | 'PAID' | 'WAIVED' | string;
   paidAt: string | null;
+  waivedBy: string | null;
+  waivedAt: string | null;
   createdAt: string;
+  user?: Pick<User, 'id' | 'name' | 'email'>;
+  loan?: {
+    id: string;
+    dueDate: string;
+    returnDate: string | null;
+    copy: {
+      id: string;
+      barcode: string;
+      book: { id: string; title: string };
+    };
+  };
 }
 
 export interface Loan {
@@ -208,7 +221,8 @@ export const booksApi = {
 export const loansApi = {
   getAll: (params?: { status?: LoanStatusFilter; q?: string; userId?: string; branchId?: string; page?: number; limit?: number }) =>
     api.get('/loans', { params }),
-  getMy: () => api.get('/loans/my'),
+  getMy: (params?: { history?: boolean }) =>
+    api.get('/loans/my', { params }),
   getOverdue: () => api.get('/loans/overdue'),
   create: (payload: LoanPayload) => api.post('/loans', payload),
   renew: (id: string) => api.post(`/loans/${id}/renew`),
@@ -221,8 +235,10 @@ export const reservationsApi = {
   getMy: (params?: { status?: ReservationStatusFilter }) =>
     api.get('/reservations/my', { params }),
   create: (copyId: string) => api.post('/reservations', { copyId }),
+  createByTitle: (bookId: string) => api.post('/reservations/by-title', { bookId }),
   cancel: (id: string) => api.post(`/reservations/${id}/cancel`),
   fulfill: (id: string, dueDays = 14) => api.post(`/reservations/${id}/fulfill`, { dueDays }),
+  waive: (id: string) => api.patch(`/reservations/${id}/waive`),
 };
 
 export const branchesApi = {
@@ -252,4 +268,39 @@ export const usersApi = {
   update: (id: string, payload: Partial<Pick<User, 'name' | 'role' | 'isActive'>>) =>
     api.put(`/users/${id}`, payload),
   deactivate: (id: string) => api.delete(`/users/${id}`),
+};
+
+export const finesApi = {
+  getAll: (params?: { status?: string; userId?: string; q?: string; page?: number; limit?: number }) =>
+    api.get('/fines', { params }),
+  getMy: () => api.get('/fines/my'),
+  pay: (id: string) => api.patch(`/fines/${id}/pay`),
+  waive: (id: string) => api.patch(`/fines/${id}/waive`),
+};
+
+export const acquisitionsApi = {
+  // Vendors
+  getVendors: () => api.get('/acquisitions/vendors'),
+  createVendor: (data: { name: string; email?: string; phone?: string; contact?: string; address?: string }) =>
+    api.post('/acquisitions/vendors', data),
+  deleteVendor: (id: string) => api.delete(`/acquisitions/vendors/${id}`),
+
+  // Orders
+  getOrders: (params?: { status?: string; vendorId?: string; q?: string; page?: number; limit?: number }) =>
+    api.get('/acquisitions/orders', { params }),
+  getOrder: (id: string) => api.get(`/acquisitions/orders/${id}`),
+  createOrder: (data: { vendorId: string; notes?: string; expectedDate?: string; items: Array<{ title: string; author?: string; isbn?: string; publisher?: string; publishedYear?: number; price: number; quantity: number }> }) =>
+    api.post('/acquisitions/orders', data),
+  receiveOrder: (orderId: string, itemId?: string) =>
+    api.post(`/acquisitions/orders/${orderId}/receive`, { itemId }),
+  deleteOrder: (id: string) => api.delete(`/acquisitions/orders/${id}`),
+
+  // Suggestions
+  getSuggestions: (params?: { status?: string; q?: string; page?: number; limit?: number }) =>
+    api.get('/acquisitions/suggestions', { params }),
+  getMySuggestions: () => api.get('/acquisitions/suggestions/my'),
+  createSuggestion: (data: { title: string; author?: string; isbn?: string; publisher?: string; publishedYear?: number; reason?: string }) =>
+    api.post('/acquisitions/suggestions', data),
+  updateSuggestion: (id: string, data: { status: string }) =>
+    api.put(`/acquisitions/suggestions/${id}`, data),
 };

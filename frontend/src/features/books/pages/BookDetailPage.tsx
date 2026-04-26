@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { booksApi, reservationsApi } from '@/lib/api';
-import { ArrowLeft, MapPin, Calendar, User, Star, BookMarked } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, User, Star, BookMarked, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,6 +12,7 @@ export function BookDetailPage() {
   const queryClient = useQueryClient();
   const { accessToken } = useAuthStore();
   const [reservationError, setReservationError] = useState<string | null>(null);
+  const [reservationSuccess, setReservationSuccess] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -31,6 +32,31 @@ export function BookDetailPage() {
     },
     onError: () => setReservationError('No se pudo crear la reserva para este ejemplar'),
   });
+
+  const reserveByTitleMutation = useMutation({
+    mutationFn: (bookId: string) => reservationsApi.createByTitle(bookId),
+    onMutate: () => {
+      setReservationError(null);
+      setReservationSuccess(null);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['book', id] });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+      const reservation = data?.data?.data;
+      if (reservation?.status === 'READY') {
+        setReservationSuccess('¡Reserva lista! Tenés 2 días para retirar el libro.');
+      } else {
+        setReservationSuccess('¡Reserva creada! Te avisaremos cuando esté lista.');
+      }
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message;
+      setReservationError(message || 'No se pudo crear la reserva');
+    },
+  });
+
+  const availableCopies = book?.copies?.filter((c: any) => c.status === 'AVAILABLE') ?? [];
 
   function canReserve(status: string) {
     return status === 'AVAILABLE' || status === 'LOANED' || status === 'RESERVED';
@@ -144,6 +170,39 @@ export function BookDetailPage() {
                 ({book._count?.reviews ?? 0} reseñas)
               </span>
             </div>
+
+            {reservationSuccess && (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3 text-emerald-500 text-sm font-sans">
+                <CheckCircle className="w-4 h-4" />
+                {reservationSuccess}
+              </div>
+            )}
+
+            {book.copies?.length > 0 && availableCopies.length > 0 && (
+              accessToken ? (
+                <button
+                  onClick={() => reserveByTitleMutation.mutate(book.id)}
+                  disabled={reserveByTitleMutation.isPending}
+                  className="btn-primary w-full sm:w-auto py-3 px-6 inline-flex items-center justify-center gap-2"
+                >
+                  <BookMarked className="w-5 h-5" />
+                  {reserveByTitleMutation.isPending ? 'Reservando...' : 'Reservar libro'}
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="btn-primary w-full sm:w-auto py-3 px-6 inline-flex items-center justify-center gap-2"
+                >
+                  <BookMarked className="w-5 h-5" />
+                  Reservar libro
+                </Link>
+              )
+            )}
+            {book.copies?.length > 0 && availableCopies.length === 0 && (
+              <p className="text-stone-500 font-sans text-sm">
+                No hay ejemplares disponibles. Podés hacer una reserva y te avisamos cuando se libere uno.
+              </p>
+            )}
           </div>
 
           {book.synopsis && (

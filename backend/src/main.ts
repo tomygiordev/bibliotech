@@ -8,6 +8,8 @@ import { loanRoutes } from './modules/loans/routes.loans.js';
 import { branchRoutes } from './modules/branches/routes.branches.js';
 import { userRoutes } from './modules/users/routes.users.js';
 import { reservationRoutes } from './modules/reservations/routes.reservations.js';
+import { fineRoutes } from './modules/fines/routes.fines.js';
+import { acquisitionRoutes } from './modules/acquisitions/routes.acquisitions.js';
 
 async function main() {
   const app = await buildApp();
@@ -19,6 +21,8 @@ async function main() {
   await app.register(reservationRoutes, { prefix: '/api/v1/reservations' });
   await app.register(branchRoutes, { prefix: '/api/v1/branches' });
   await app.register(userRoutes, { prefix: '/api/v1/users' });
+  await app.register(fineRoutes, { prefix: '/api/v1/fines' });
+  await app.register(acquisitionRoutes, { prefix: '/api/v1/acquisitions' });
 
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });

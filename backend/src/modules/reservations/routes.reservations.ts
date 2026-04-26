@@ -5,6 +5,7 @@ import { AppError } from '../../shared/errors/index.js';
 import { addDays } from '../../shared/utils/date.js';
 import {
   createReservationSchema,
+  createReservationByTitleSchema,
   fulfillReservationSchema,
   listReservationsSchema,
   reservationParamsSchema,
@@ -16,10 +17,8 @@ import {
   compactReservationQueue,
   releaseOrPromoteReservation,
 } from './reservation-queue.js';
+import { getConfig } from '../../config/config.js';
 
-const DEFAULT_LOAN_DAYS = 14;
-const DEFAULT_MAX_RENEWALS = 2;
-const MAX_ACTIVE_LOANS = 5;
 const RESERVABLE_COPY_STATUSES = ['AVAILABLE', 'LOANED', 'RESERVED'];
 
 const reservationInclude = {
@@ -45,13 +44,14 @@ function statusWhere(status: string) {
 }
 
 async function assertBorrowerCanReceiveLoan(userId: string) {
-  const [user, activeLoansCount, pendingFines] = await Promise.all([
+  const [user, activeLoansCount, pendingFines, maxActiveLoans] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, isActive: true, blockedUntil: true },
     }),
     prisma.loan.count({ where: { userId, returnDate: null } }),
     prisma.fine.count({ where: { userId, status: 'PENDING' } }),
+    getConfig('MAX_ACTIVE_LOANS', 5),
   ]);
 
   if (!user) {
@@ -66,8 +66,8 @@ async function assertBorrowerCanReceiveLoan(userId: string) {
     throw new AppError('User is blocked', 'FORBIDDEN', 403);
   }
 
-  if (activeLoansCount >= MAX_ACTIVE_LOANS) {
-    throw new AppError(`User has reached maximum of ${MAX_ACTIVE_LOANS} active loans`, 'BAD_REQUEST', 400);
+  if (activeLoansCount >= maxActiveLoans) {
+    throw new AppError(`User has reached maximum of ${maxActiveLoans} active loans`, 'BAD_REQUEST', 400);
   }
 
   if (pendingFines > 0) {
@@ -247,12 +247,19 @@ export async function reservationRoutes(fastify: FastifyInstance) {
     }
 
     const reservation = await prisma.$transaction(async (tx) => {
-      const activeReservationsCount = await tx.reservation.count({
-        where: {
-          copyId: input.copyId,
-          status: { in: ACTIVE_RESERVATION_STATUSES },
-        },
-      });
+      const [activeReservationsCount, maxReservationsPerCopy] = await Promise.all([
+        tx.reservation.count({
+          where: {
+            copyId: input.copyId,
+            status: { in: ACTIVE_RESERVATION_STATUSES },
+          },
+        }),
+        getConfig('MAX_RESERVATIONS_PER_COPY', 50),
+      ]);
+
+      if (activeReservationsCount >= maxReservationsPerCopy) {
+        throw new AppError(`Maximum reservations (${maxReservationsPerCopy}) reached for this copy`, 'BAD_REQUEST', 400);
+      }
 
       const now = new Date();
       const isReady = copy.status === 'AVAILABLE' && activeReservationsCount === 0;
@@ -380,6 +387,11 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 
     await assertBorrowerCanReceiveLoan(reservation.userId);
 
+    const [defaultLoanDays, defaultMaxRenewals] = await Promise.all([
+      getConfig('DEFAULT_LOAN_DAYS', 14),
+      getConfig('DEFAULT_MAX_RENEWALS', 2),
+    ]);
+
     const result = await prisma.$transaction(async (tx) => {
       await tx.copy.update({
         where: { id: reservation.copyId },
@@ -392,8 +404,8 @@ export async function reservationRoutes(fastify: FastifyInstance) {
           userId: reservation.userId,
           branchId: reservation.copy.branchId,
           loanDate: new Date(),
-          dueDate: addDays(new Date(), input.dueDays || DEFAULT_LOAN_DAYS),
-          maxRenewals: DEFAULT_MAX_RENEWALS,
+          dueDate: addDays(new Date(), input.dueDays || defaultLoanDays as number),
+          maxRenewals: defaultMaxRenewals as number,
         },
         include: {
           copy: {
@@ -433,5 +445,225 @@ export async function reservationRoutes(fastify: FastifyInstance) {
     });
 
     return reply.send({ data: result });
+  });
+
+  fastify.post('/by-title', { preValidation: [requireAuth()] }, async (request, reply) => {
+    const input = createReservationByTitleSchema.parse(request.body);
+    const userId = request.userId;
+
+    if (!userId) {
+      throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
+    }
+
+    const [book, user] = await Promise.all([
+      prisma.book.findUnique({
+        where: { id: input.bookId },
+        include: {
+          copies: {
+            where: { branch: { isActive: true } },
+            include: { branch: { select: { id: true, name: true } } },
+          },
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, isActive: true, blockedUntil: true },
+      }),
+    ]);
+
+    if (!book) {
+      throw new AppError('Book not found', 'NOT_FOUND', 404);
+    }
+
+    if (!user || !user.isActive) {
+      throw new AppError('User is inactive', 'FORBIDDEN', 403);
+    }
+
+    if (user.blockedUntil && user.blockedUntil > new Date()) {
+      throw new AppError('User is blocked', 'FORBIDDEN', 403);
+    }
+
+    const pendingFines = await prisma.fine.count({
+      where: { userId, status: 'PENDING' },
+    });
+
+    if (pendingFines > 0) {
+      throw new AppError('User has pending fines', 'FORBIDDEN', 403);
+    }
+
+    const existingGlobalReservation = await prisma.reservation.findFirst({
+      where: {
+        bookId: input.bookId,
+        userId,
+        status: { in: ACTIVE_RESERVATION_STATUSES },
+      },
+    });
+
+    if (existingGlobalReservation) {
+      throw new AppError('User already has an active reservation for this book', 'CONFLICT', 409);
+    }
+
+    const availableCopies = book.copies.filter(c => c.status === 'AVAILABLE');
+    const copyWithReservation = await prisma.copy.findFirst({
+      where: {
+        bookId: input.bookId,
+        status: 'RESERVED',
+        reservations: {
+          some: {
+            status: 'READY',
+            userId,
+          },
+        },
+      },
+    });
+
+    if (copyWithReservation) {
+      throw new AppError('User already has a ready reservation for this book', 'CONFLICT', 409);
+    }
+
+    if (availableCopies.length === 0) {
+      const reservation = await prisma.$transaction(async (tx) => {
+        const [activeReservationsCount, maxReservationsPerCopy] = await Promise.all([
+          tx.reservation.count({
+            where: {
+              bookId: input.bookId,
+              status: { in: ACTIVE_RESERVATION_STATUSES },
+            },
+          }),
+          getConfig('MAX_RESERVATIONS_PER_COPY', 50),
+        ]);
+
+        if (activeReservationsCount >= maxReservationsPerCopy) {
+          throw new AppError(`Maximum reservations (${maxReservationsPerCopy}) reached for this book`, 'BAD_REQUEST', 400);
+        }
+
+        const now = new Date();
+        const createdReservation = await tx.reservation.create({
+          data: {
+            userId,
+            bookId: input.bookId,
+            copyId: book.copies[0].id,
+            position: activeReservationsCount + 1,
+            status: 'WAITING',
+            notifiedAt: null,
+            expiresAt: addDays(now, WAITING_RESERVATION_DAYS),
+          },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            copy: {
+              include: {
+                book: { select: { id: true, title: true, isbn: true, coverUrl: true } },
+                branch: { select: { id: true, name: true } },
+              },
+            },
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            action: 'CREATE_RESERVATION',
+            entityType: 'Reservation',
+            entityId: createdReservation.id,
+            userId,
+            metadata: JSON.stringify({
+              bookId: input.bookId,
+              status: 'WAITING',
+            }),
+          },
+        });
+
+        return createdReservation;
+      });
+
+      return reply.status(201).send({ data: reservation });
+    }
+
+    const copy = availableCopies[0];
+    const reservation = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const createdReservation = await tx.reservation.create({
+        data: {
+          userId,
+          bookId: input.bookId,
+          copyId: copy.id,
+          position: 1,
+          status: 'READY',
+          notifiedAt: now,
+          expiresAt: addDays(now, READY_RESERVATION_DAYS),
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          copy: {
+            include: {
+              book: { select: { id: true, title: true, isbn: true, coverUrl: true } },
+              branch: { select: { id: true, name: true } },
+            },
+          },
+        },
+      });
+
+      await tx.copy.update({
+        where: { id: copy.id },
+        data: { status: 'RESERVED' },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: 'CREATE_RESERVATION',
+          entityType: 'Reservation',
+          entityId: createdReservation.id,
+          userId,
+          metadata: JSON.stringify({
+            bookId: input.bookId,
+            copyId: copy.id,
+            status: 'READY',
+          }),
+        },
+      });
+
+      return createdReservation;
+    });
+
+    return reply.status(201).send({ data: reservation });
+  });
+
+  fastify.patch('/:id/waive', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
+    const { id } = reservationParamsSchema.parse(request.params);
+
+    const reservation = await prisma.reservation.findUnique({
+      where: { id },
+    });
+
+    if (!reservation) {
+      throw new AppError('Reservation not found', 'NOT_FOUND', 404);
+    }
+
+    const updatedReservation = await prisma.reservation.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+      include: reservationInclude,
+    });
+
+    if (reservation.status === 'READY') {
+      await releaseOrPromoteReservation(prisma, reservation.copyId, reservation.bookId || undefined);
+    } else if (reservation.status === 'WAITING') {
+      await compactReservationQueue(prisma, reservation.copyId, reservation.position);
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'CANCEL_RESERVATION',
+        entityType: 'Reservation',
+        entityId: id,
+        userId: request.userId,
+        metadata: JSON.stringify({
+          copyId: reservation.copyId,
+          reservationUserId: reservation.userId,
+          reason: 'WAIVED',
+        }),
+      },
+    });
+
+    return reply.send({ data: updatedReservation });
   });
 }

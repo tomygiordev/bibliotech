@@ -24,9 +24,13 @@ export async function compactReservationQueue(
   });
 }
 
-export async function promoteNextReservation(tx: TransactionClient, copyId: string) {
+export async function promoteNextReservation(tx: TransactionClient, copyId: string, bookId?: string) {
   const nextReservation = await tx.reservation.findFirst({
-    where: { copyId, status: 'WAITING' },
+    where: {
+      copyId: copyId || undefined,
+      bookId: bookId || undefined,
+      status: 'WAITING',
+    },
     orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
   });
 
@@ -45,18 +49,18 @@ export async function promoteNextReservation(tx: TransactionClient, copyId: stri
     },
   });
 
-  await compactReservationQueue(tx, copyId, nextReservation.position);
+  await compactReservationQueue(tx, nextReservation.copyId, nextReservation.position);
 
   await tx.copy.update({
-    where: { id: copyId },
+    where: { id: nextReservation.copyId },
     data: { status: 'RESERVED' },
   });
 
   return promotedReservation;
 }
 
-export async function releaseOrPromoteReservation(tx: TransactionClient, copyId: string) {
-  const promotedReservation = await promoteNextReservation(tx, copyId);
+export async function releaseOrPromoteReservation(tx: TransactionClient, copyId: string, bookId?: string) {
+  const promotedReservation = await promoteNextReservation(tx, copyId, bookId);
 
   if (!promotedReservation) {
     await tx.copy.update({
@@ -66,4 +70,46 @@ export async function releaseOrPromoteReservation(tx: TransactionClient, copyId:
   }
 
   return promotedReservation;
+}
+
+export async function promoteNextReservationByBook(tx: TransactionClient, bookId: string) {
+  const nextReservation = await tx.reservation.findFirst({
+    where: { bookId, status: 'WAITING' },
+    orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+  });
+
+  if (!nextReservation) {
+    return null;
+  }
+
+  const availableCopy = await tx.copy.findFirst({
+    where: {
+      bookId,
+      status: 'AVAILABLE',
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (!availableCopy) {
+    return null;
+  }
+
+  const now = new Date();
+  await tx.reservation.update({
+    where: { id: nextReservation.id },
+    data: {
+      copyId: availableCopy.id,
+      status: 'READY',
+      position: 1,
+      notifiedAt: now,
+      expiresAt: addDays(now, READY_RESERVATION_DAYS),
+    },
+  });
+
+  await tx.copy.update({
+    where: { id: availableCopy.id },
+    data: { status: 'RESERVED' },
+  });
+
+  return { reservation: nextReservation, copy: availableCopy };
 }

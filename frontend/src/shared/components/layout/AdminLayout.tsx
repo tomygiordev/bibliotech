@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { BookOpen, Boxes, Building2, CalendarClock, Clock, LogOut, LayoutDashboard, Users, FileBarChart, ChevronLeft } from 'lucide-react';
+import { BookOpen, Boxes, Building2, CalendarClock, Clock, DollarSign, LogOut, LayoutDashboard, Users, FileBarChart, ChevronLeft, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -16,6 +16,8 @@ export function AdminLayout() {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { to: '/admin/loans', label: 'Préstamos', icon: Clock },
     { to: '/admin/reservations', label: 'Reservas', icon: CalendarClock },
+    { to: '/admin/fines', label: 'Pagos', icon: DollarSign },
+    { to: '/admin/acquisitions', label: 'Adquisiciones', icon: Package },
     { to: '/admin/users', label: 'Usuarios', icon: Users },
     { to: '/admin/reports', label: 'Reportes', icon: FileBarChart },
     { to: '/admin/books', label: 'Libros', icon: BookOpen },

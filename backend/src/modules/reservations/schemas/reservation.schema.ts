@@ -22,6 +22,10 @@ export const createReservationSchema = z.object({
   copyId: z.string().cuid(),
 });
 
+export const createReservationByTitleSchema = z.object({
+  bookId: z.string().cuid(),
+});
+
 export const listReservationsSchema = z.object({
   status: reservationViewStatusSchema.default('active'),
   userId: z.string().cuid().optional(),

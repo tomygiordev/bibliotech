@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loansApi } from '@/lib/api';
-import { BookOpen, Clock, RotateCcw, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookOpen, Clock, RotateCcw, AlertCircle, CheckCircle, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -8,10 +9,11 @@ import { motion } from 'framer-motion';
 
 export function MyLoansPage() {
   const queryClient = useQueryClient();
+  const [showHistory, setShowHistory] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['my-loans'],
-    queryFn: loansApi.getMy,
+    queryKey: ['my-loans', showHistory],
+    queryFn: () => loansApi.getMy({ history: showHistory }),
   });
 
   const renewMutation = useMutation({
@@ -32,9 +34,21 @@ export function MyLoansPage() {
         <h1 className="font-display text-4xl xl:text-5xl text-stone-100 mb-3 tracking-tight">
           Mis Préstamos
         </h1>
-        <p className="text-stone-500 font-sans text-lg">
+        <p className="text-stone-500 font-sans text-lg mb-5">
           Gestionar tus préstamos activos y vencidos
         </p>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-sans transition-all',
+            showHistory
+              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+              : 'bg-stone-800 text-stone-400 border border-stone-700 hover:border-stone-600'
+          )}
+        >
+          <History className="w-4 h-4" />
+          {showHistory ? 'Ver activos' : 'Ver historial completo'}
+        </button>
       </div>
 
       {isLoading ? (

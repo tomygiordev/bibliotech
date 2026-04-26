@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { BookOpen, User, LogOut, BookMarked, CalendarClock } from 'lucide-react';
+import { BookOpen, User, LogOut, BookMarked, CalendarClock, CreditCard, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -12,6 +12,8 @@ export function MainLayout() {
     { to: '/catalog', label: 'Catálogo', icon: BookOpen },
     { to: '/my-loans', label: 'Mis Préstamos', icon: BookMarked },
     { to: '/my-reservations', label: 'Mis Reservas', icon: CalendarClock },
+    { to: '/my-account', label: 'Mi Cuenta', icon: CreditCard },
+    { to: '/suggest-book', label: 'Sugerir', icon: Lightbulb },
   ];
 
   return (

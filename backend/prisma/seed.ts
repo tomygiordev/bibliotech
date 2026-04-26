@@ -1,10 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { initializeDefaultConfig } from '../src/config/config.js';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
+
+  await initializeDefaultConfig();
+  console.log('Initialized default system config');
 
   const adminPassword = await bcrypt.hash('Admin123!', 12);
   const librarianPassword = await bcrypt.hash('Librarian123!', 12);

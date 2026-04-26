@@ -8,11 +8,7 @@ import {
   ACTIVE_RESERVATION_STATUSES,
   releaseOrPromoteReservation,
 } from '../reservations/reservation-queue.js';
-
-const DEFAULT_LOAN_DAYS = 14;
-const DEFAULT_MAX_RENEWALS = 2;
-const DEFAULT_RENEWAL_DAYS = 7;
-const MAX_ACTIVE_LOANS = 5;
+import { getConfig } from '../../config/config.js';
 
 const loanInclude = {
   copy: {
@@ -26,16 +22,30 @@ const loanInclude = {
   fines: true,
 } as const;
 
-function calculateOverdueFine(overdueDays: number) {
-  if (overdueDays <= 7) {
-    return overdueDays * 1;
+async function calculateOverdueFine(overdueDays: number): Promise<number> {
+  if (overdueDays <= 0) {
+    return 0;
   }
 
-  if (overdueDays <= 14) {
-    return 7 * 1 + (overdueDays - 7) * 2;
+  const graceDays = await getConfig('OVERDUE_GRACE_DAYS', 1);
+  const effectiveDays = overdueDays - graceDays;
+
+  if (effectiveDays <= 0) {
+    return 0;
   }
 
-  return 7 * 1 + 7 * 2 + (overdueDays - 14) * 5;
+  const fineCap = await getConfig('FINE_CAP', 100);
+  let fine = 0;
+
+  if (effectiveDays <= 7) {
+    fine = effectiveDays * 1;
+  } else if (effectiveDays <= 14) {
+    fine = 7 * 1 + (effectiveDays - 7) * 2;
+  } else {
+    fine = 7 * 1 + 7 * 2 + (effectiveDays - 14) * 5;
+  }
+
+  return Math.min(fine, fineCap as number);
 }
 
 export async function loanRoutes(fastify: FastifyInstance) {
@@ -144,12 +154,15 @@ export async function loanRoutes(fastify: FastifyInstance) {
       throw new AppError('User is blocked', 'FORBIDDEN', 403);
     }
 
-    const activeLoansCount = await prisma.loan.count({
-      where: { userId: input.userId, returnDate: null },
-    });
+    const [activeLoansCount, maxActiveLoans] = await Promise.all([
+      prisma.loan.count({
+        where: { userId: input.userId, returnDate: null },
+      }),
+      getConfig('MAX_ACTIVE_LOANS', 5),
+    ]);
 
-    if (activeLoansCount >= MAX_ACTIVE_LOANS) {
-      throw new AppError(`User has reached maximum of ${MAX_ACTIVE_LOANS} active loans`, 'BAD_REQUEST', 400);
+    if (activeLoansCount >= maxActiveLoans) {
+      throw new AppError(`User has reached maximum of ${maxActiveLoans} active loans`, 'BAD_REQUEST', 400);
     }
 
     const pendingFines = await prisma.fine.count({
@@ -159,6 +172,11 @@ export async function loanRoutes(fastify: FastifyInstance) {
     if (pendingFines > 0) {
       throw new AppError('User has pending fines', 'FORBIDDEN', 403);
     }
+
+    const [defaultLoanDays, defaultMaxRenewals] = await Promise.all([
+      getConfig('DEFAULT_LOAN_DAYS', 14),
+      getConfig('DEFAULT_MAX_RENEWALS', 2),
+    ]);
 
     const loan = await prisma.$transaction(async (tx) => {
       const updatedCopy = await tx.copy.updateMany({
@@ -176,8 +194,9 @@ export async function loanRoutes(fastify: FastifyInstance) {
           userId: input.userId,
           branchId: input.branchId,
           loanDate: new Date(),
-          dueDate: addDays(new Date(), input.dueDays || DEFAULT_LOAN_DAYS),
-          maxRenewals: DEFAULT_MAX_RENEWALS,
+          dueDate: addDays(new Date(), input.dueDays || defaultLoanDays as number),
+          maxRenewals: defaultMaxRenewals as number,
+          status: 'ACTIVE',
         },
         include: loanInclude,
       });
@@ -221,14 +240,20 @@ export async function loanRoutes(fastify: FastifyInstance) {
     const now = new Date();
     const isOverdue = now > loan.dueDate;
     const overdueDays = isOverdue
-      ? Math.max(1, Math.ceil((now.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24)))
+      ? Math.ceil((now.getTime() - loan.dueDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0;
 
+    const [overdueFine, defaultLoanDays, defaultMaxRenewals] = await Promise.all([
+      calculateOverdueFine(overdueDays),
+      getConfig('DEFAULT_LOAN_DAYS', 14),
+      getConfig('DEFAULT_MAX_RENEWALS', 2),
+    ]);
+
     const updatedLoan = await prisma.$transaction(async (tx) => {
-      if (isOverdue) {
+      if (overdueFine > 0) {
         await tx.fine.create({
           data: {
-            amount: Math.min(calculateOverdueFine(overdueDays), 100),
+            amount: overdueFine,
             reason: `Overdue by ${overdueDays} days`,
             userId: loan.userId,
             loanId: loan.id,
@@ -240,7 +265,7 @@ export async function loanRoutes(fastify: FastifyInstance) {
 
       const returnedLoan = await tx.loan.update({
         where: { id },
-        data: { returnDate: now },
+        data: { returnDate: now, status: 'RETURNED' },
         include: loanInclude,
       });
 
@@ -254,9 +279,72 @@ export async function loanRoutes(fastify: FastifyInstance) {
             copyId: loan.copyId,
             borrowerId: loan.userId,
             overdueDays,
+            fineAmount: overdueFine,
           }),
         },
       });
+
+      const readyReservation = await tx.reservation.findFirst({
+        where: {
+          copyId: loan.copyId,
+          status: 'READY',
+          expiresAt: { gt: now },
+        },
+      });
+
+      if (readyReservation) {
+        const [user, activeLoansCount, pendingFines, maxActiveLoans] = await Promise.all([
+          tx.user.findUnique({
+            where: { id: readyReservation.userId },
+            select: { id: true, isActive: true, blockedUntil: true },
+          }),
+          tx.loan.count({ where: { userId: readyReservation.userId, returnDate: null } }),
+          tx.fine.count({ where: { userId: readyReservation.userId, status: 'PENDING' } }),
+          getConfig('MAX_ACTIVE_LOANS', 5),
+        ]);
+
+        if (user && user.isActive && (!user.blockedUntil || user.blockedUntil <= now) &&
+            activeLoansCount < maxActiveLoans && pendingFines === 0) {
+
+          await tx.copy.update({
+            where: { id: loan.copyId },
+            data: { status: 'LOANED' },
+          });
+
+          const autoLoan = await tx.loan.create({
+            data: {
+              copyId: loan.copyId,
+              userId: readyReservation.userId,
+              branchId: loan.branchId,
+              loanDate: now,
+              dueDate: addDays(now, defaultLoanDays as number),
+              maxRenewals: defaultMaxRenewals as number,
+              status: 'ACTIVE',
+            },
+            include: loanInclude,
+          });
+
+          await tx.reservation.update({
+            where: { id: readyReservation.id },
+            data: { status: 'COMPLETED' },
+          });
+
+          await tx.auditLog.create({
+            data: {
+              action: 'AUTO_FULFILL_RESERVATION',
+              entityType: 'Loan',
+              entityId: autoLoan.id,
+              userId: request.userId,
+              metadata: JSON.stringify({
+                copyId: loan.copyId,
+                borrowerId: readyReservation.userId,
+                reservationId: readyReservation.id,
+                loanId: autoLoan.id,
+              }),
+            },
+          });
+        }
+      }
 
       return returnedLoan;
     });
@@ -298,11 +386,13 @@ export async function loanRoutes(fastify: FastifyInstance) {
       throw new AppError('Cannot renew, there are pending reservations', 'BAD_REQUEST', 400);
     }
 
+    const defaultRenewalDays = await getConfig('DEFAULT_RENEWAL_DAYS', 7);
+
     const updatedLoan = await prisma.loan.update({
       where: { id },
       data: {
         renewalCount: { increment: 1 },
-        dueDate: addDays(loan.dueDate, DEFAULT_RENEWAL_DAYS),
+        dueDate: addDays(loan.dueDate, defaultRenewalDays as number),
       },
       include: loanInclude,
     });
@@ -312,9 +402,15 @@ export async function loanRoutes(fastify: FastifyInstance) {
 
   fastify.get('/my', { preValidation: [requireAuth()] }, async (request, reply) => {
     const userId = (request.user as any).sub;
+    const query = request.query as { history?: string };
+    const history = query.history === 'true';
+
+    const where = history
+      ? { userId }
+      : { userId, returnDate: null };
 
     const loans = await prisma.loan.findMany({
-      where: { userId, returnDate: null },
+      where,
       include: {
         copy: {
           include: {
@@ -324,7 +420,7 @@ export async function loanRoutes(fastify: FastifyInstance) {
         },
         branch: { select: { id: true, name: true } },
       },
-      orderBy: { dueDate: 'asc' },
+      orderBy: history ? { createdAt: 'desc' } : { dueDate: 'asc' },
     });
 
     return reply.send({ data: loans });
