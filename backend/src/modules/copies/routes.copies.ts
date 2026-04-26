@@ -1,32 +1,50 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../../config/database.js';
-import { createCopySchema, updateCopySchema, copyParamsSchema, transferCopySchema } from './schemas/copy.schema.js';
+import {
+  createCopySchema,
+  listCopiesSchema,
+  updateCopySchema,
+  copyParamsSchema,
+  transferCopySchema,
+} from './schemas/copy.schema.js';
 import { AppError } from '../../shared/errors/index.js';
 import { requireAuth, requireRole } from '../../shared/middleware/auth.js';
 
 export async function copyRoutes(fastify: FastifyInstance) {
-  fastify.get('/', async (request, reply) => {
-    const { bookId, branchId, status } = request.query as any;
+  fastify.get('/', { preValidation: [requireAuth(), requireRole('ADMIN', 'LIBRARIAN')] }, async (request, reply) => {
+    const query = listCopiesSchema.parse(request.query);
 
     const where: any = {};
-    if (bookId) where.bookId = bookId;
-    if (branchId) where.branchId = branchId;
-    if (status) where.status = status;
+    if (query.bookId) where.bookId = query.bookId;
+    if (query.branchId) where.branchId = query.branchId;
+    if (query.status) where.status = query.status;
 
-    const copies = await prisma.copy.findMany({
-      where,
-      include: {
-        book: { select: { id: true, title: true, isbn: true } },
-        branch: { select: { id: true, name: true } },
+    const [copies, total] = await Promise.all([
+      prisma.copy.findMany({
+        where,
+        include: {
+          book: { select: { id: true, title: true, isbn: true } },
+          branch: { select: { id: true, name: true } },
+        },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.copy.count({ where }),
+    ]);
+
+    return reply.send({
+      data: copies,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
       },
-      take: 100,
-      orderBy: { createdAt: 'desc' },
     });
-
-    return reply.send({ data: copies });
   });
 
-  fastify.get('/:id', async (request, reply) => {
+  fastify.get('/:id', { preValidation: [requireAuth(), requireRole('ADMIN', 'LIBRARIAN')] }, async (request, reply) => {
     const { id } = copyParamsSchema.parse(request.params);
 
     const copy = await prisma.copy.findUnique({
@@ -100,33 +118,28 @@ export async function copyRoutes(fastify: FastifyInstance) {
       throw new AppError('Cannot transfer a loaned copy', 'BAD_REQUEST', 400);
     }
 
-    const updated = await prisma.copy.update({
-      where: { id },
-      data: { branchId: targetBranchId, status: 'TRANSFERRED' },
-      include: {
-        book: { select: { id: true, title: true } },
-        branch: { select: { id: true, name: true } },
-      },
-    });
-
-    await prisma.auditLog.create({
-      data: {
-        action: 'TRANSFER',
-        entityType: 'Copy',
-        entityId: id,
-        metadata: JSON.stringify({
-          fromBranchId: copy.branchId,
-          toBranchId: targetBranchId,
-        }),
-      },
-    });
-
-    setTimeout(async () => {
-      await prisma.copy.update({
+    const [updated] = await prisma.$transaction([
+      prisma.copy.update({
         where: { id },
-        data: { status: 'AVAILABLE' },
-      });
-    }, 5000);
+        data: { branchId: targetBranchId, status: 'AVAILABLE' },
+        include: {
+          book: { select: { id: true, title: true } },
+          branch: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          action: 'TRANSFER',
+          entityType: 'Copy',
+          entityId: id,
+          userId: request.userId,
+          metadata: JSON.stringify({
+            fromBranchId: copy.branchId,
+            toBranchId: targetBranchId,
+          }),
+        },
+      }),
+    ]);
 
     return reply.send({ data: updated });
   });

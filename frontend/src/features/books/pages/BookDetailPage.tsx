@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { booksApi } from '@/lib/api';
-import { ArrowLeft, MapPin, Calendar, User, Star } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { booksApi, reservationsApi } from '@/lib/api';
+import { ArrowLeft, MapPin, Calendar, User, Star, BookMarked } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '@/stores/authStore';
 
 export function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  const [reservationError, setReservationError] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -15,6 +20,28 @@ export function BookDetailPage() {
   });
 
   const book = data?.data?.data;
+
+  const reserveMutation = useMutation({
+    mutationFn: (copyId: string) => reservationsApi.create(copyId),
+    onMutate: () => setReservationError(null),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', id] });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+    },
+    onError: () => setReservationError('No se pudo crear la reserva para este ejemplar'),
+  });
+
+  function canReserve(status: string) {
+    return status === 'AVAILABLE' || status === 'LOANED' || status === 'RESERVED';
+  }
+
+  function getCopyStatusLabel(status: string) {
+    if (status === 'AVAILABLE') return 'Disponible';
+    if (status === 'LOANED') return 'Prestado';
+    if (status === 'RESERVED') return 'Reservado';
+    return status;
+  }
 
   if (isLoading) {
     return (
@@ -155,33 +182,60 @@ export function BookDetailPage() {
 
           <div>
             <h2 className="text-xl font-display text-stone-100 mb-4">
-              Ejemplares disponibles
+              Ejemplares
             </h2>
+            {reservationError && (
+              <div className="mb-4 bg-rose-500/10 border border-rose-500/20 rounded-lg px-4 py-3 text-rose-500 text-sm font-sans">
+                {reservationError}
+              </div>
+            )}
             {book.copies?.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {book.copies.map((copy: any) => (
                   <div
                     key={copy.id}
-                    className="glass-panel p-4 flex items-center justify-between"
+                    className="glass-panel p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                   >
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4 text-amber-500" />
-                      <span className="text-stone-100 font-sans">
-                        {copy.branch?.name}
-                      </span>
+                      <div>
+                        <span className="text-stone-100 font-sans">
+                          {copy.branch?.name}
+                        </span>
+                        <p className="text-stone-600 font-mono text-xs">{copy.barcode}</p>
+                      </div>
                     </div>
-                    <span
-                      className={cn(
-                        'px-3 py-1 rounded-full text-xs font-sans font-medium',
-                        copy.status === 'AVAILABLE'
-                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                          : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          'px-3 py-1 rounded-full text-xs font-sans font-medium',
+                          copy.status === 'AVAILABLE'
+                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                            : copy.status === 'RESERVED'
+                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                              : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                        )}
+                      >
+                        {getCopyStatusLabel(copy.status)}
+                      </span>
+                      {canReserve(copy.status) && (
+                        accessToken ? (
+                          <button
+                            onClick={() => reserveMutation.mutate(copy.id)}
+                            disabled={reserveMutation.isPending}
+                            className="btn-secondary text-sm font-sans py-2 px-4 inline-flex items-center gap-2"
+                          >
+                            <BookMarked className="w-4 h-4" />
+                            Reservar
+                          </button>
+                        ) : (
+                          <Link to="/login" className="btn-secondary text-sm font-sans py-2 px-4 inline-flex items-center gap-2">
+                            <BookMarked className="w-4 h-4" />
+                            Reservar
+                          </Link>
+                        )
                       )}
-                    >
-                      {copy.status === 'AVAILABLE'
-                        ? 'Disponible'
-                        : 'Prestado'}
-                    </span>
+                    </div>
                   </div>
                 ))}
               </div>

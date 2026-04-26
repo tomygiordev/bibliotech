@@ -9,11 +9,15 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { CatalogPage } from '@/features/books/pages/CatalogPage';
 import { BookDetailPage } from '@/features/books/pages/BookDetailPage';
 import { MyLoansPage } from '@/features/loans/pages/MyLoansPage';
+import { MyReservationsPage } from '@/features/reservations/pages/MyReservationsPage';
 import { DashboardPage } from '@/features/admin/pages/DashboardPage';
 import { UsersPage } from '@/features/admin/pages/UsersPage';
 import { ReportsPage } from '@/features/admin/pages/ReportsPage';
 import { AdminBooksPage } from '@/features/admin/pages/AdminBooksPage';
 import { AdminBranchesPage } from '@/features/admin/pages/AdminBranchesPage';
+import { AdminCopiesPage } from '@/features/admin/pages/AdminCopiesPage';
+import { AdminLoansPage } from '@/features/admin/pages/AdminLoansPage';
+import { AdminReservationsPage } from '@/features/admin/pages/AdminReservationsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore();
@@ -32,7 +36,10 @@ export default function App() {
           <Route path="/admin" element={<DashboardPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/reports" element={<ReportsPage />} />
+          <Route path="/admin/loans" element={<AdminLoansPage />} />
+          <Route path="/admin/reservations" element={<AdminReservationsPage />} />
           <Route path="/admin/books" element={<AdminBooksPage />} />
+          <Route path="/admin/copies" element={<AdminCopiesPage />} />
           <Route path="/admin/branches" element={<AdminBranchesPage />} />
         </Route>
 
@@ -45,6 +52,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyLoansPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-reservations"
+            element={
+              <ProtectedRoute>
+                <MyReservationsPage />
               </ProtectedRoute>
             }
           />

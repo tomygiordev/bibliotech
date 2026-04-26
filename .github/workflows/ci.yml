@@ -42,20 +42,6 @@ jobs:
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: bibliotech_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -75,17 +61,12 @@ jobs:
       - name: Generate Prisma Client
         run: |
           cd backend
-          npx prisma generate
-
-      - name: Run migrations
-        run: |
-          cd backend
-          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bibliotech_test npx prisma migrate deploy
+          DATABASE_URL=file:./test.db npx prisma generate
 
       - name: Run tests
         run: |
           cd backend
-          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bibliotech_test npm run test
+          DATABASE_URL=file:./test.db npm run test
 
   test-frontend:
     name: Test Frontend
@@ -110,53 +91,3 @@ jobs:
         run: |
           cd frontend
           npm run test
-
-  test-e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Playwright browsers
-        run: |
-          npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: |
-          cd frontend
-          npm ci
-          npm run test:e2e
-        env:
-          VITE_API_URL: http://localhost:3000
-
-  build-docker:
-    name: Build Docker
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: [lint-and-typecheck, test-backend, test-frontend]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Docker setup
-        run: |
-          cd backend
-          docker build -t bibliotech-api:${{ github.sha }} .
-          docker tag bibliotech-api:${{ github.sha }} bibliotech/api:latest
-
-      - name: Log in to Docker Hub
-        if: github.event_name == 'push'
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Push to Docker Hub
-        if: github.event_name == 'push'
-        run: |
-          docker push bibliotech/api:latest

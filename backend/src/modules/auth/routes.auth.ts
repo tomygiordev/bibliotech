@@ -32,7 +32,23 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return reply.status(201).send({ data: user });
+    const accessToken = fastify.jwt.sign(
+      { sub: user.id, role: user.role, email: user.email },
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = fastify.jwt.sign(
+      { sub: user.id, type: 'refresh' },
+      { expiresIn: '7d' }
+    );
+
+    return reply.status(201).send({
+      data: {
+        user,
+        accessToken,
+        refreshToken,
+      },
+    });
   });
 
   fastify.post('/login', async (request, reply) => {

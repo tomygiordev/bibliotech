@@ -56,7 +56,6 @@ export async function buildApp() {
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   app.get('/', async () => ({ name: 'Bibliotech Premium API', version: '1.0.0' }));
-  app.head('/', async () => ({ name: 'Bibliotech Premium API', version: '1.0.0' }));
 
   return app;
 }

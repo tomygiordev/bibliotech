@@ -44,12 +44,13 @@ export function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data: loginData } = await authApi.register(
+      const response = await authApi.register(
         data.email,
         data.password,
         data.name
       );
-      setAuth(loginData.user, loginData.accessToken, loginData.refreshToken);
+      const { user, accessToken, refreshToken } = response.data.data;
+      setAuth(user, accessToken, refreshToken);
       navigate('/catalog');
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Error al registrar');

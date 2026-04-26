@@ -10,7 +10,7 @@ export const createBranchSchema = z.object({
 export const updateBranchSchema = createBranchSchema.partial();
 
 export const branchParamsSchema = z.object({
-  id: z.string().cuid(),
+  id: z.string().min(1),
 });
 
 export type CreateBranchInput = z.infer<typeof createBranchSchema>;

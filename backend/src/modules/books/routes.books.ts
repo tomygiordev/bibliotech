@@ -74,6 +74,21 @@ export async function bookRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.get('/options', { preValidation: [requireAuth(), requireRole('ADMIN', 'LIBRARIAN')] }, async (_request, reply) => {
+    const [authors, genres] = await Promise.all([
+      prisma.author.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.genre.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    return reply.send({ data: { authors, genres } });
+  });
+
   fastify.get('/:id', async (request, reply) => {
     const { id } = bookParamsSchema.parse(request.params);
 
@@ -134,6 +149,11 @@ export async function bookRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/:id', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
     const { id } = bookParamsSchema.parse(request.params);
+    const copiesCount = await prisma.copy.count({ where: { bookId: id } });
+
+    if (copiesCount > 0) {
+      throw new AppError('Cannot delete a book with registered copies', 'BAD_REQUEST', 400);
+    }
 
     await prisma.book.delete({ where: { id } });
 

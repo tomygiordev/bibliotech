@@ -6,6 +6,8 @@ import { bookRoutes } from './modules/books/routes.books.js';
 import { copyRoutes } from './modules/copies/routes.copies.js';
 import { loanRoutes } from './modules/loans/routes.loans.js';
 import { branchRoutes } from './modules/branches/routes.branches.js';
+import { userRoutes } from './modules/users/routes.users.js';
+import { reservationRoutes } from './modules/reservations/routes.reservations.js';
 
 async function main() {
   const app = await buildApp();
@@ -14,7 +16,9 @@ async function main() {
   await app.register(bookRoutes, { prefix: '/api/v1/books' });
   await app.register(copyRoutes, { prefix: '/api/v1/copies' });
   await app.register(loanRoutes, { prefix: '/api/v1/loans' });
+  await app.register(reservationRoutes, { prefix: '/api/v1/reservations' });
   await app.register(branchRoutes, { prefix: '/api/v1/branches' });
+  await app.register(userRoutes, { prefix: '/api/v1/users' });
 
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
