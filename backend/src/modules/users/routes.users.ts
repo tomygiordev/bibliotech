@@ -138,6 +138,19 @@ export async function userRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
     const { id } = userParamsSchema.parse(request.params);
 
+    const [activeLoans, pendingFines] = await Promise.all([
+      prisma.loan.count({ where: { userId: id, returnDate: null } }),
+      prisma.fine.count({ where: { userId: id, status: 'PENDING' } }),
+    ]);
+
+    if (activeLoans > 0) {
+      throw new AppError(`User has ${activeLoans} active loan(s). Cannot deactivate.`, 'BAD_REQUEST', 400);
+    }
+
+    if (pendingFines > 0) {
+      throw new AppError(`User has ${pendingFines} pending fine(s). Cannot deactivate.`, 'BAD_REQUEST', 400);
+    }
+
     await prisma.user.update({
       where: { id },
       data: { isActive: false },

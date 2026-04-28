@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         String    @default("MEMBER")
-  isActive     Boolean   @default(true)
-  blockedUntil DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  role            String    @default("MEMBER")
+  isActive        Boolean   @default(true)
+  blockedUntil    DateTime?
+  failedAttempts  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   loans        Loan[]
   reservations Reservation[]

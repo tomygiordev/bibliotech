@@ -93,6 +93,10 @@ export const orderParamsSchema = z.object({
   id: z.string().cuid(),
 });
 
+export const suggestionParamsSchema = z.object({
+  id: z.string().cuid(),
+});
+
 export const receiveOrderItemSchema = z.object({
   quantity: z.number().int().positive().optional(),
   createCopy: z.boolean().default(true),

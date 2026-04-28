@@ -22,16 +22,33 @@ export async function buildApp() {
 
   await app.register(helmet, {
     contentSecurityPolicy: false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xssFilter: true,
   });
 
   await app.register(cors, {
     origin: config.frontendUrl,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['X-Request-Id'],
+    maxAge: 86400,
   });
 
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    errorResponseBuilder: (_request, _reply) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded. Please try again later.',
+    }),
   });
 
   await app.register(sensible);
@@ -46,7 +63,7 @@ export async function buildApp() {
   app.decorate('authenticate', async (request: any, reply: any) => {
     try {
       await request.jwtVerify();
-    } catch (err) {
+    } catch (_err) {
       reply.status(401).send({ error: 'Unauthorized' });
     }
   });

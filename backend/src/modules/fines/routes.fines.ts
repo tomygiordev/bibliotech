@@ -35,7 +35,7 @@ export async function fineRoutes(fastify: FastifyInstance) {
       where.userId = query.userId;
     }
 
-    const search = query.q?.trim();
+    const search = query.q?.trim().slice(0, 120);
     if (search) {
       where.OR = [
         { user: { name: { contains: search } } },
@@ -71,7 +71,7 @@ export async function fineRoutes(fastify: FastifyInstance) {
 
     const fines = await prisma.fine.findMany({
       where: { userId },
-      include: fineInclude,
+      take: 50,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -83,33 +83,25 @@ export async function fineRoutes(fastify: FastifyInstance) {
     const userId = request.userId;
     const userRole = request.userRole;
 
-    const fine = await prisma.fine.findUnique({
-      where: { id },
-    });
-
-    if (!fine) {
-      throw new AppError('Fine not found', 'NOT_FOUND', 404);
-    }
-
-    if (fine.status === 'PAID') {
-      throw new AppError('Fine already paid', 'BAD_REQUEST', 400);
-    }
-
-    if (fine.status === 'WAIVED') {
-      throw new AppError('Fine was waived', 'BAD_REQUEST', 400);
-    }
-
-    if (userRole !== 'ADMIN' && userRole !== 'LIBRARIAN' && fine.userId !== userId) {
-      throw new AppError('Cannot pay another user fine', 'FORBIDDEN', 403);
-    }
-
-    const updatedFine = await prisma.fine.update({
-      where: { id },
-      data: {
-        status: 'PAID',
-        paidAt: new Date(),
-      },
-      include: fineInclude,
+    const updatedFine = await prisma.$transaction(async (tx) => {
+      const existing = await tx.fine.findUnique({ where: { id } });
+      if (!existing) {
+        throw new AppError('Fine not found', 'NOT_FOUND', 404);
+      }
+      if (existing.status === 'PAID' || existing.status === 'WAIVED') {
+        throw new AppError(existing.status === 'PAID' ? 'Fine already paid' : 'Fine already waived', 'BAD_REQUEST', 400);
+      }
+      if (userRole !== 'ADMIN' && userRole !== 'LIBRARIAN' && existing.userId !== userId) {
+        throw new AppError('Cannot pay another user fine', 'FORBIDDEN', 403);
+      }
+      return tx.fine.update({
+        where: { id, status: 'PENDING' },
+        data: {
+          status: 'PAID',
+          paidAt: new Date(),
+        },
+        include: fineInclude,
+      });
     });
 
     await prisma.auditLog.create({
@@ -119,7 +111,7 @@ export async function fineRoutes(fastify: FastifyInstance) {
         entityId: id,
         userId: request.userId,
         metadata: JSON.stringify({
-          amount: fine.amount,
+          amount: updatedFine.amount,
           paidBy: userId,
         }),
       },
@@ -131,30 +123,23 @@ export async function fineRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/waive', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
     const { id } = fineParamsSchema.parse(request.params);
 
-    const fine = await prisma.fine.findUnique({
-      where: { id },
-    });
-
-    if (!fine) {
-      throw new AppError('Fine not found', 'NOT_FOUND', 404);
-    }
-
-    if (fine.status === 'PAID') {
-      throw new AppError('Fine already paid', 'BAD_REQUEST', 400);
-    }
-
-    if (fine.status === 'WAIVED') {
-      throw new AppError('Fine already waived', 'BAD_REQUEST', 400);
-    }
-
-    const updatedFine = await prisma.fine.update({
-      where: { id },
-      data: {
-        status: 'WAIVED',
-        waivedBy: request.userId,
-        waivedAt: new Date(),
-      },
-      include: fineInclude,
+    const updatedFine = await prisma.$transaction(async (tx) => {
+      const existing = await tx.fine.findUnique({ where: { id } });
+      if (!existing) {
+        throw new AppError('Fine not found', 'NOT_FOUND', 404);
+      }
+      if (existing.status === 'PAID' || existing.status === 'WAIVED') {
+        throw new AppError(existing.status === 'PAID' ? 'Fine already paid' : 'Fine already waived', 'BAD_REQUEST', 400);
+      }
+      return tx.fine.update({
+        where: { id, status: 'PENDING' },
+        data: {
+          status: 'WAIVED',
+          waivedBy: request.userId,
+          waivedAt: new Date(),
+        },
+        include: fineInclude,
+      });
     });
 
     await prisma.auditLog.create({
@@ -164,8 +149,8 @@ export async function fineRoutes(fastify: FastifyInstance) {
         entityId: id,
         userId: request.userId,
         metadata: JSON.stringify({
-          amount: fine.amount,
-          reason: fine.reason,
+          amount: updatedFine.amount,
+          reason: updatedFine.reason,
         }),
       },
     });

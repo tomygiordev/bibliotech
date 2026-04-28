@@ -85,13 +85,29 @@ export async function copyRoutes(fastify: FastifyInstance) {
     const { id } = copyParamsSchema.parse(request.params);
     const input = updateCopySchema.parse(request.body);
 
-    const copy = await prisma.copy.update({
-      where: { id },
-      data: input,
-      include: {
-        book: { select: { id: true, title: true } },
-        branch: { select: { id: true, name: true } },
-      },
+    if (input.status && !['AVAILABLE', 'MAINTENANCE', 'LOST', 'DAMAGED'].includes(input.status)) {
+      throw new AppError('Invalid status for manual update', 'BAD_REQUEST', 400);
+    }
+
+    const copy = await prisma.$transaction(async (tx) => {
+      const existing = await tx.copy.findUnique({ where: { id } });
+      if (!existing) {
+        throw new AppError('Copy not found', 'NOT_FOUND', 404);
+      }
+      if (existing.status === 'LOANED' && input.status === 'AVAILABLE') {
+        throw new AppError('Cannot set loaned copy to available manually', 'BAD_REQUEST', 400);
+      }
+      if (existing.status === 'RESERVED' && input.status === 'AVAILABLE') {
+        throw new AppError('Cannot set reserved copy to available manually', 'BAD_REQUEST', 400);
+      }
+      return tx.copy.update({
+        where: { id },
+        data: input,
+        include: {
+          book: { select: { id: true, title: true } },
+          branch: { select: { id: true, name: true } },
+        },
+      });
     });
 
     return reply.send({ data: copy });
@@ -114,8 +130,8 @@ export async function copyRoutes(fastify: FastifyInstance) {
       throw new AppError('Target branch not found', 'NOT_FOUND', 404);
     }
 
-    if (copy.status === 'LOANED') {
-      throw new AppError('Cannot transfer a loaned copy', 'BAD_REQUEST', 400);
+    if (copy.status === 'LOANED' || copy.status === 'RESERVED') {
+      throw new AppError('Cannot transfer a loaned or reserved copy', 'BAD_REQUEST', 400);
     }
 
     const [updated] = await prisma.$transaction([

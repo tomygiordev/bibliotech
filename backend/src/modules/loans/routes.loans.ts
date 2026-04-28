@@ -41,8 +41,10 @@ async function calculateOverdueFine(overdueDays: number): Promise<number> {
     fine = effectiveDays * 1;
   } else if (effectiveDays <= 14) {
     fine = 7 * 1 + (effectiveDays - 7) * 2;
+  } else if (effectiveDays <= 30) {
+    fine = 7 * 1 + 7 * 2 + (effectiveDays - 14) * 3;
   } else {
-    fine = 7 * 1 + 7 * 2 + (effectiveDays - 14) * 5;
+    fine = 7 * 1 + 7 * 2 + 16 * 3 + (effectiveDays - 30) * 5;
   }
 
   return Math.min(fine, fineCap as number);
@@ -54,13 +56,9 @@ export async function loanRoutes(fastify: FastifyInstance) {
     const now = new Date();
     const where: any = {};
 
-    if (query.userId) {
-      where.userId = query.userId;
-    }
+    if (query.userId) where.userId = query.userId;
 
-    if (query.branchId) {
-      where.branchId = query.branchId;
-    }
+    if (query.branchId) where.branchId = query.branchId;
 
     if (query.status === 'active') {
       where.returnDate = null;
@@ -75,7 +73,7 @@ export async function loanRoutes(fastify: FastifyInstance) {
       where.dueDate = { lt: now };
     }
 
-    const search = query.q?.trim();
+    const search = query.q?.trim().slice(0, 120);
     if (search) {
       where.OR = [
         { user: { name: { contains: search } } },
@@ -237,6 +235,10 @@ export async function loanRoutes(fastify: FastifyInstance) {
       throw new AppError('Loan already returned', 'BAD_REQUEST', 400);
     }
 
+    if (loan.copy.status !== 'LOANED') {
+      throw new AppError('Copy is not currently on loan', 'BAD_REQUEST', 400);
+    }
+
     const now = new Date();
     const isOverdue = now > loan.dueDate;
     const overdueDays = isOverdue
@@ -315,7 +317,7 @@ export async function loanRoutes(fastify: FastifyInstance) {
             data: {
               copyId: loan.copyId,
               userId: readyReservation.userId,
-              branchId: loan.branchId,
+              branchId: loan.copy.branchId,
               loanDate: now,
               dueDate: addDays(now, defaultLoanDays as number),
               maxRenewals: defaultMaxRenewals as number,
@@ -343,6 +345,25 @@ export async function loanRoutes(fastify: FastifyInstance) {
               }),
             },
           });
+        } else {
+          await tx.reservation.update({
+            where: { id: readyReservation.id },
+            data: { status: 'EXPIRED' },
+          });
+          await releaseOrPromoteReservation(tx, loan.copyId);
+          await tx.auditLog.create({
+            data: {
+              action: 'AUTO_FULFILL_FAILED',
+              entityType: 'Reservation',
+              entityId: readyReservation.id,
+              userId: request.userId,
+              metadata: JSON.stringify({
+                copyId: loan.copyId,
+                reservationId: readyReservation.id,
+                reason: user ? 'User constraints not met' : 'User not found',
+              }),
+            },
+          });
         }
       }
 
@@ -354,12 +375,12 @@ export async function loanRoutes(fastify: FastifyInstance) {
 
   fastify.post('/:id/renew', { preValidation: [requireAuth()] }, async (request, reply) => {
     const { id } = loanParamsSchema.parse(request.params);
-    const userId = (request.user as any).sub;
-    const userRole = (request.user as any).role;
+    const userId = request.userId;
+    const userRole = request.userRole;
 
     const loan = await prisma.loan.findUnique({
       where: { id },
-      include: { copy: true },
+      include: { copy: true, user: { select: { id: true, isActive: true, blockedUntil: true } } },
     });
 
     if (!loan) {
@@ -370,12 +391,33 @@ export async function loanRoutes(fastify: FastifyInstance) {
       throw new AppError('Cannot renew another user loan', 'FORBIDDEN', 403);
     }
 
+    if (!loan.user.isActive) {
+      throw new AppError('User is inactive', 'FORBIDDEN', 403);
+    }
+
+    if (loan.user.blockedUntil && loan.user.blockedUntil > new Date()) {
+      throw new AppError('User is blocked', 'FORBIDDEN', 403);
+    }
+
     if (loan.returnDate) {
       throw new AppError('Loan already returned', 'BAD_REQUEST', 400);
     }
 
+    const now = new Date();
+    if (loan.dueDate < now) {
+      throw new AppError('Cannot renew overdue loan', 'BAD_REQUEST', 400);
+    }
+
     if (loan.renewalCount >= loan.maxRenewals) {
       throw new AppError(`Maximum renewals (${loan.maxRenewals}) reached`, 'BAD_REQUEST', 400);
+    }
+
+    const pendingFines = await prisma.fine.count({
+      where: { userId: loan.userId, status: 'PENDING' },
+    });
+
+    if (pendingFines > 0) {
+      throw new AppError('User has pending fines', 'FORBIDDEN', 403);
     }
 
     const existingReservations = await prisma.reservation.count({
@@ -401,29 +443,44 @@ export async function loanRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/my', { preValidation: [requireAuth()] }, async (request, reply) => {
-    const userId = (request.user as any).sub;
-    const query = request.query as { history?: string };
+    const userId = request.userId;
+    const query = request.query as { history?: string; page?: string; limit?: string };
     const history = query.history === 'true';
+    const page = Math.max(1, parseInt(query.page ?? '1') || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? '20') || 20));
 
     const where = history
       ? { userId }
       : { userId, returnDate: null };
 
-    const loans = await prisma.loan.findMany({
-      where,
-      include: {
-        copy: {
-          include: {
-            book: { select: { id: true, title: true, coverUrl: true, isbn: true } },
-            branch: { select: { id: true, name: true } },
+    const [loans, total] = await Promise.all([
+      prisma.loan.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          copy: {
+            include: {
+              book: { select: { id: true, title: true, coverUrl: true, isbn: true } },
+              branch: { select: { id: true, name: true } },
+            },
           },
+          branch: { select: { id: true, name: true } },
         },
-        branch: { select: { id: true, name: true } },
-      },
-      orderBy: history ? { createdAt: 'desc' } : { dueDate: 'asc' },
-    });
+        orderBy: history ? { createdAt: 'desc' } : { dueDate: 'asc' },
+      }),
+      prisma.loan.count({ where }),
+    ]);
 
-    return reply.send({ data: loans });
+    return reply.send({
+      data: loans,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   });
 
   fastify.get('/overdue', { preValidation: [requireAuth(), requireRole('ADMIN', 'LIBRARIAN')] }, async (_request, reply) => {
@@ -432,6 +489,7 @@ export async function loanRoutes(fastify: FastifyInstance) {
         returnDate: null,
         dueDate: { lt: new Date() },
       },
+      take: 200,
       include: loanInclude,
       orderBy: { dueDate: 'asc' },
     });

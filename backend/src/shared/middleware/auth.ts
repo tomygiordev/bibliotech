@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { PrismaClient } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 
 declare module 'fastify' {
@@ -8,14 +9,31 @@ declare module 'fastify' {
   }
 }
 
+const prisma = new PrismaClient();
+
 export function requireAuth() {
   return async function(request: FastifyRequest, _reply: FastifyReply) {
     try {
       await request.jwtVerify();
-      const user = request.user as any;
-      request.userId = user.sub;
-      request.userRole = user.role;
-    } catch {
+      const payload = request.user as { sub: string; role?: string; email?: string };
+      request.userId = payload.sub;
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, role: true, isActive: true },
+      });
+
+      if (!dbUser) {
+        throw new AppError('User not found', 'UNAUTHORIZED', 401);
+      }
+
+      if (!dbUser.isActive) {
+        throw new AppError('User is inactive', 'UNAUTHORIZED', 401);
+      }
+
+      request.userRole = dbUser.role;
+    } catch (err) {
+      if (err instanceof AppError) throw err;
       throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
     }
   };

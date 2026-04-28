@@ -8,6 +8,7 @@ import {
   createPurchaseOrderSchema,
   listOrdersSchema,
   orderParamsSchema,
+  suggestionParamsSchema,
   createBookSuggestionSchema,
   updateBookSuggestionSchema,
 } from './schemas/acquisition.schema.js';
@@ -374,13 +375,14 @@ export async function acquisitionRoutes(fastify: FastifyInstance) {
     const userId = request.userId;
     const suggestions = await prisma.bookSuggestion.findMany({
       where: { userId },
+      take: 50,
       orderBy: { createdAt: 'desc' },
     });
     return reply.send({ data: suggestions });
   });
 
   fastify.put('/suggestions/:id', { preValidation: [requireAuth(), requireRole('ADMIN', 'LIBRARIAN')] }, async (request, reply) => {
-    const { id } = orderParamsSchema.parse(request.params);
+    const { id } = suggestionParamsSchema.parse(request.params);
     const input = updateBookSuggestionSchema.parse(request.body);
 
     const suggestion = await prisma.bookSuggestion.update({

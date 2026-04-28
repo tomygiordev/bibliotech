@@ -170,14 +170,16 @@ export function MyReservationsPage() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => cancelMutation.mutate(reservation.id)}
-                      disabled={cancelMutation.isPending}
-                      className="btn-ghost text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 text-sm font-sans inline-flex items-center gap-2"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Cancelar
-                    </button>
+                    {(reservation.status === 'READY' || reservation.status === 'WAITING') && (
+                      <button
+                        onClick={() => cancelMutation.mutate(reservation.id)}
+                        disabled={cancelMutation.isPending}
+                        className="btn-ghost text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 text-sm font-sans inline-flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

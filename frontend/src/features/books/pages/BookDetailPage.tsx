@@ -59,7 +59,7 @@ export function BookDetailPage() {
   const availableCopies = book?.copies?.filter((c: any) => c.status === 'AVAILABLE') ?? [];
 
   function canReserve(status: string) {
-    return status === 'AVAILABLE' || status === 'LOANED' || status === 'RESERVED';
+    return status === 'AVAILABLE';
   }
 
   function getCopyStatusLabel(status: string) {

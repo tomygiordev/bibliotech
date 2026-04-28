@@ -62,7 +62,6 @@ const statusStyles: Record<Copy['status'], string> = {
   LOANED: 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20',
   RESERVED: 'bg-sky-500/10 text-sky-400 border border-sky-500/20',
   MAINTENANCE: 'bg-stone-700 text-stone-300 border border-stone-600',
-  TRANSFERRED: 'bg-violet-500/10 text-violet-400 border border-violet-500/20',
   LOST: 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
   DAMAGED: 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
 };

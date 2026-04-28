@@ -71,6 +71,19 @@ export async function branchRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
     const { id } = branchParamsSchema.parse(request.params);
 
+    const [activeCopiesCount, activeLoansCount] = await Promise.all([
+      prisma.copy.count({ where: { branchId: id, status: { not: 'AVAILABLE' } } }),
+      prisma.loan.count({ where: { branchId: id, returnDate: null } }),
+    ]);
+
+    if (activeCopiesCount > 0) {
+      throw new AppError(`Branch has ${activeCopiesCount} non-available copy(ies). Cannot deactivate.`, 'BAD_REQUEST', 400);
+    }
+
+    if (activeLoansCount > 0) {
+      throw new AppError(`Branch has ${activeLoansCount} active loan(s). Cannot deactivate.`, 'BAD_REQUEST', 400);
+    }
+
     await prisma.branch.update({
       where: { id },
       data: { isActive: false },

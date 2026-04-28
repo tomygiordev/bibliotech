@@ -149,10 +149,18 @@ export async function bookRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/:id', { preValidation: [requireAuth(), requireRole('ADMIN')] }, async (request, reply) => {
     const { id } = bookParamsSchema.parse(request.params);
-    const copiesCount = await prisma.copy.count({ where: { bookId: id } });
+
+    const [copiesCount, activeReservationsCount] = await Promise.all([
+      prisma.copy.count({ where: { bookId: id } }),
+      prisma.reservation.count({ where: { bookId: id, status: { in: ['WAITING', 'READY'] } } }),
+    ]);
 
     if (copiesCount > 0) {
       throw new AppError('Cannot delete a book with registered copies', 'BAD_REQUEST', 400);
+    }
+
+    if (activeReservationsCount > 0) {
+      throw new AppError(`Cannot delete a book with ${activeReservationsCount} active reservation(s)`, 'BAD_REQUEST', 400);
     }
 
     await prisma.book.delete({ where: { id } });

@@ -4,7 +4,7 @@ export const createLoanSchema = z.object({
   copyId: z.string().cuid(),
   userId: z.string().cuid(),
   branchId: z.string().min(1),
-  dueDays: z.number().int().positive().default(14),
+  dueDays: z.number().int().positive().min(1).max(90).default(14),
 });
 
 export const loanStatusSchema = z.enum(['active', 'returned', 'overdue', 'all']);

@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { resolve } from 'path';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && (!process.env.JWT_SECRET || !process.env.DATABASE_URL)) {
+  throw new Error('Missing required environment variables: JWT_SECRET, DATABASE_URL');
+}
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3000', 10),
@@ -15,8 +21,8 @@ export const config = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET ?? 'default-secret-change-me',
-    refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'default-refresh-secret-change-me',
+    secret: process.env.JWT_SECRET ?? (isProduction ? undefined : 'dev-secret-do-not-use-in-prod')!,
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? (isProduction ? undefined : 'dev-refresh-secret-do-not-use-in-prod')!,
     accessExpires: process.env.JWT_ACCESS_EXPIRES ?? '15m',
     refreshExpires: process.env.JWT_REFRESH_EXPIRES ?? '7d',
   },

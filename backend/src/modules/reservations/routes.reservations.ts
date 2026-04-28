@@ -19,7 +19,7 @@ import {
 } from './reservation-queue.js';
 import { getConfig } from '../../config/config.js';
 
-const RESERVABLE_COPY_STATUSES = ['AVAILABLE', 'LOANED', 'RESERVED'];
+const RESERVABLE_COPY_STATUSES = ['AVAILABLE'];
 
 const reservationInclude = {
   user: { select: { id: true, name: true, email: true } },
@@ -96,18 +96,32 @@ async function expireReadyReservation(reservationId: string) {
 }
 
 async function expireReadyReservations() {
-  const expiredReservations = await prisma.reservation.findMany({
-    where: {
-      status: 'READY',
-      expiresAt: { lt: new Date() },
-    },
-    select: { id: true },
-    take: 50,
-  });
+  await prisma.$transaction(async (tx) => {
+    const expiredReservations = await tx.reservation.findMany({
+      where: {
+        status: 'READY',
+        expiresAt: { lt: new Date() },
+      },
+      select: { id: true, copyId: true },
+      take: 50,
+    });
 
-  for (const reservation of expiredReservations) {
-    await expireReadyReservation(reservation.id);
-  }
+    if (expiredReservations.length === 0) {
+      return;
+    }
+
+    await tx.reservation.updateMany({
+      where: {
+        id: { in: expiredReservations.map(r => r.id) },
+      },
+      data: { status: 'EXPIRED' },
+    });
+
+    const copyIds = [...new Set(expiredReservations.map(r => r.copyId))];
+    for (const copyId of copyIds) {
+      await releaseOrPromoteReservation(tx, copyId);
+    }
+  });
 }
 
 export async function reservationRoutes(fastify: FastifyInstance) {
@@ -115,7 +129,7 @@ export async function reservationRoutes(fastify: FastifyInstance) {
     await expireReadyReservations();
 
     const query = listReservationsSchema.parse(request.query);
-    const search = query.q?.trim();
+    const search = query.q?.trim().slice(0, 120);
     const where: any = {
       ...statusWhere(query.status),
       ...(query.userId ? { userId: query.userId } : {}),
@@ -167,7 +181,7 @@ export async function reservationRoutes(fastify: FastifyInstance) {
         userId,
         ...statusWhere(query.status),
       },
-      include: reservationInclude,
+      take: 50,
       orderBy: [{ status: 'asc' }, { expiresAt: 'asc' }, { createdAt: 'desc' }],
     });
 
@@ -244,6 +258,22 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 
     if (pendingFines > 0) {
       throw new AppError('User has pending fines', 'FORBIDDEN', 403);
+    }
+
+    const [existingBookReservation, activeReservationsCount, maxReservationsPerUser] = await Promise.all([
+      prisma.reservation.findFirst({
+        where: { userId, bookId: copy.bookId, status: { in: ACTIVE_RESERVATION_STATUSES } },
+      }),
+      prisma.reservation.count({ where: { userId, status: { in: ACTIVE_RESERVATION_STATUSES } } }),
+      getConfig('MAX_RESERVATIONS_PER_USER', 5),
+    ]);
+
+    if (existingBookReservation) {
+      throw new AppError('User already has an active reservation for this book', 'CONFLICT', 409);
+    }
+
+    if (activeReservationsCount >= maxReservationsPerUser) {
+      throw new AppError(`User has reached maximum of ${maxReservationsPerUser} active reservations`, 'BAD_REQUEST', 400);
     }
 
     const reservation = await prisma.$transaction(async (tx) => {
@@ -522,6 +552,17 @@ export async function reservationRoutes(fastify: FastifyInstance) {
     }
 
     if (availableCopies.length === 0) {
+      const [userActiveReservationsCount, maxReservationsPerUser] = await Promise.all([
+        prisma.reservation.count({
+          where: { userId, status: { in: ACTIVE_RESERVATION_STATUSES } },
+        }),
+        getConfig('MAX_RESERVATIONS_PER_USER', 5),
+      ]);
+
+      if (userActiveReservationsCount >= maxReservationsPerUser) {
+        throw new AppError(`User has reached maximum of ${maxReservationsPerUser} active reservations`, 'BAD_REQUEST', 400);
+      }
+
       const reservation = await prisma.$transaction(async (tx) => {
         const [activeReservationsCount, maxReservationsPerCopy] = await Promise.all([
           tx.reservation.count({
@@ -638,32 +679,36 @@ export async function reservationRoutes(fastify: FastifyInstance) {
       throw new AppError('Reservation not found', 'NOT_FOUND', 404);
     }
 
-    const updatedReservation = await prisma.reservation.update({
-      where: { id },
-      data: { status: 'CANCELLED' },
-      include: reservationInclude,
+    const waivedReservation = await prisma.$transaction(async (tx) => {
+      const updatedReservation = await tx.reservation.update({
+        where: { id },
+        data: { status: 'CANCELLED' },
+        include: reservationInclude,
+      });
+
+      if (reservation.status === 'READY') {
+        await releaseOrPromoteReservation(tx, reservation.copyId, reservation.bookId || undefined);
+      } else if (reservation.status === 'WAITING') {
+        await compactReservationQueue(tx, reservation.copyId, reservation.position);
+      }
+
+      await tx.auditLog.create({
+        data: {
+          action: 'CANCEL_RESERVATION',
+          entityType: 'Reservation',
+          entityId: id,
+          userId: request.userId,
+          metadata: JSON.stringify({
+            copyId: reservation.copyId,
+            reservationUserId: reservation.userId,
+            reason: 'WAIVED',
+          }),
+        },
+      });
+
+      return updatedReservation;
     });
 
-    if (reservation.status === 'READY') {
-      await releaseOrPromoteReservation(prisma, reservation.copyId, reservation.bookId || undefined);
-    } else if (reservation.status === 'WAITING') {
-      await compactReservationQueue(prisma, reservation.copyId, reservation.position);
-    }
-
-    await prisma.auditLog.create({
-      data: {
-        action: 'CANCEL_RESERVATION',
-        entityType: 'Reservation',
-        entityId: id,
-        userId: request.userId,
-        metadata: JSON.stringify({
-          copyId: reservation.copyId,
-          reservationUserId: reservation.userId,
-          reason: 'WAIVED',
-        }),
-      },
-    });
-
-    return reply.send({ data: updatedReservation });
+    return reply.send({ data: waivedReservation });
   });
 }

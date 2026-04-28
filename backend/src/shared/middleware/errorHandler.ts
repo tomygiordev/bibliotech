@@ -26,7 +26,7 @@ export function errorHandler(
     });
   }
 
-  if (error.name === 'UnauthorizedError') {
+  if (error.name === 'UnauthorizedError' || error.message.includes('jwt')) {
     return reply.status(401).send({
       error: {
         code: 'UNAUTHORIZED',
@@ -35,14 +35,10 @@ export function errorHandler(
     });
   }
 
-  console.error('Unhandled error:', error);
-
   return reply.status(500).send({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message: process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
-        : error.message,
+      message: 'Internal server error',
     },
   });
 }

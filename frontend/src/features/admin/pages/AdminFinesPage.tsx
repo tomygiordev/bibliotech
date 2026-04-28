@@ -75,11 +75,13 @@ export function AdminFinesPage() {
       setPageSuccess(null);
     },
     onSuccess: () => {
+      setPageError(null);
       queryClient.invalidateQueries({ queryKey: ['admin-fines'] });
       setPageSuccess('Pago registrado');
     },
     onError: (error) => {
       setPageError(getApiErrorMessage(error, 'No se pudo registrar el pago'));
+      setPageSuccess(null);
     },
   });
 
@@ -90,11 +92,13 @@ export function AdminFinesPage() {
       setPageSuccess(null);
     },
     onSuccess: () => {
+      setPageError(null);
       queryClient.invalidateQueries({ queryKey: ['admin-fines'] });
       setPageSuccess('Multa perdonada');
     },
     onError: (error) => {
       setPageError(getApiErrorMessage(error, 'No se pudo perdonar la multa'));
+      setPageSuccess(null);
     },
   });
 

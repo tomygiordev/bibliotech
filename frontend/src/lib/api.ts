@@ -81,7 +81,7 @@ export interface Branch {
 export interface Copy {
   id: string;
   barcode: string;
-  status: 'AVAILABLE' | 'LOANED' | 'RESERVED' | 'MAINTENANCE' | 'TRANSFERRED' | 'LOST' | 'DAMAGED';
+  status: 'AVAILABLE' | 'LOANED' | 'RESERVED' | 'MAINTENANCE' | 'LOST' | 'DAMAGED';
   condition: 'NEW' | 'GOOD' | 'FAIR' | 'POOR';
   zone: string | null;
   shelf: string | null;
